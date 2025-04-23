@@ -44,6 +44,7 @@ Installation
 
 # clone the repo
 git clone https://github.com/Lokut192/nestjs-starter
+
 cd nestjs-starter
 
 # install dependencies
