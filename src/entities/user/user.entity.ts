@@ -4,8 +4,11 @@ import {
   BeforeUpdate,
   Column,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
+import { UserSession } from './user-session.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -23,13 +26,8 @@ export class User {
   @Column({ select: false })
   password: string;
 
-  @Column({
-    nullable: true,
-    select: false,
-    name: 'refresh_token',
-    default: null,
-  })
-  refreshToken: string;
+  @OneToMany(() => UserSession, (userSession) => userSession.user)
+  sessions: UserSession[];
 
   // #endregion Properties
 
