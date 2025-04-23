@@ -42,6 +42,8 @@ async function bootstrap() {
 
   // Start application
   await app.listen(port);
+
+  logger.log(`Node env: ${process.env.NODE_ENV}`);
   logger.log(`Server running on port ${port}`);
 }
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
