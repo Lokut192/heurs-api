@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Generate migration",
+      "type": "shell",
+      "command": "npx",
+      "args": [
+        "ts-node",
+        "--esm",
+        "node_modules/typeorm/cli.js",
+        "migration:generate",
+        "-d",
+        "src/data-source.ts",
+        "src/migrations/${input:migrationName}"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Apply migration",
+      "type": "shell",
+      "command": "npx",
+      "args": [
+        "ts-node",
+        "--esm",
+        "node_modules/typeorm/cli.js",
+        "migration:run",
+        "-d",
+        "src/data-source.ts"
+      ],
+      "options": {
+        "env": {
+          "TS_NODE_PROJECT": "tsconfig.json"
+        }
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "migrationName",
+      "type": "promptString",
+      "description": "Migration name",
+      "default": "MyNewMigration"
+    }
+  ]
+}
