@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBody,
+  ApiExcludeController,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -30,6 +31,7 @@ import { UsersService } from './users.service';
 
 @Controller('users')
 @ApiTags('Users')
+@ApiExcludeController(process.env.NODE_ENV !== 'development')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
