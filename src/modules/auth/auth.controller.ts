@@ -1,16 +1,23 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { SignInDto } from 'src/dto/auth/sign-in.dto';
+import { AuthTokensDto } from 'src/dto/auth/tokens.dto';
 
 import { AuthService } from './auth.service';
+import { RefreshTokenGuard } from './refresh-token.guard';
 
 @Controller('auth')
 @ApiTags('Authentication')
@@ -23,8 +30,8 @@ export class AuthController {
   @ApiBody({ type: SignInDto })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: '', // TODO: Add description
-    type: Object, // TODO: Add valid type
+    description: 'The user tokens',
+    type: AuthTokensDto,
     isArray: false,
   })
   @ApiResponse({
@@ -40,8 +47,47 @@ export class AuthController {
     }),
   )
   async signIn(@Body() signInDto: SignInDto) {
-    const user = await this.authService.validateUser(signInDto);
+    const tokens = await this.authService.signIn(signInDto);
 
-    return user;
+    return tokens;
+  }
+
+  @Get('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RefreshTokenGuard)
+  @ApiOperation({
+    summary: 'Refresh user accessToken and extend session',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The user tokens',
+    type: AuthTokensDto,
+    isArray: false,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Refresh token invalid or expired',
+  })
+  async refresh(@Req() req: Request) {
+    try {
+      const session = await this.authService.getSessionRefreshToken(
+        // @ts-ignore
+        req.user!.refreshToken! as string,
+      );
+
+      const accessToken = await this.authService.getUserAccessToken(
+        session.sessionId,
+        // @ts-ignore
+        req.user!.userId! as number,
+        // @ts-ignore
+        req.user!.userUsername! as string,
+        // @ts-ignore
+        req.user!.userEmail! as string,
+      );
+
+      return { accessToken };
+    } catch (_internalServerErrorException) {
+      throw new UnauthorizedException();
+    }
   }
 }

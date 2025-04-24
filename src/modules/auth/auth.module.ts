@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entities/user/user.entity';
@@ -14,15 +13,7 @@ import { RefreshTokenStrategy } from './refresh-token.strategy';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, UserSession]),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        global: true,
-        secret: configService.get<string>('JWT_SECRET', 'secret'),
-        // signOptions: { expiresIn: '1d', algorithm: 'HS256' },
-      }),
-    }),
+    JwtModule.register({}),
     UsersModule,
   ],
   providers: [AuthService, AccessTokenStrategy, RefreshTokenStrategy],
