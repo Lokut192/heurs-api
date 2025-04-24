@@ -92,7 +92,6 @@ export class AuthService {
     userId: number | string,
     refreshToken: string,
   ): Promise<UserSession> {
-    this.logger.debug(`Hashing refresh token: ${refreshToken}`);
     const hashedRefreshToken = this.hashData(refreshToken);
     const session = this.sessionsRepo.create({
       refreshToken: hashedRefreshToken,
