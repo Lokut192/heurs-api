@@ -11,6 +11,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -28,13 +29,14 @@ import { CreateUserDto } from 'src/dto/user/create-user.dto';
 import { GetUserDto } from 'src/dto/user/get-user.dto';
 import { UpdateUserDto } from 'src/dto/user/update-user.dto';
 
+import { AccessTokenGuard } from '../auth/access-token.guard';
 import { UsersService } from './users.service';
 
 @Controller('users')
 @ApiTags('Users')
 @ApiExcludeController(process.env.NODE_ENV !== 'development')
 @ApiBearerAuth()
-// @UseGuards(AccessTokenGuard)
+@UseGuards(AccessTokenGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
