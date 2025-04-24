@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcryptjs';
 import { CreateUserDto } from 'src/dto/user/create-user.dto';
 import { UpdateUserDto } from 'src/dto/user/update-user.dto';
 import { User } from 'src/entities/user/user.entity';
@@ -15,6 +16,8 @@ export class UsersService {
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
   ) {}
+
+  // #region Read
 
   async findOneById(id: number): Promise<User> {
     const query = this.usersRepo.createQueryBuilder('user');
@@ -68,6 +71,10 @@ export class UsersService {
     return users;
   }
 
+  // #endregion Read
+
+  // #region Update
+
   async updateOne(user: UpdateUserDto): Promise<User> {
     // Get user
     const dbUser = await this.findOneById(user.id);
@@ -112,6 +119,10 @@ export class UsersService {
     return this.findOneById(dbUser.id);
   }
 
+  // #endregion Update
+
+  // #region Create
+
   async createOne(user: CreateUserDto): Promise<User> {
     // Check username is unique
     const existingUserUsernameQuery = this.usersRepo.createQueryBuilder('user');
@@ -146,9 +157,23 @@ export class UsersService {
     return this.findOneById(newUser.id);
   }
 
+  // #endregion Create
+
+  // #region Delete
+
   async deleteUserById(userId: number): Promise<void> {
     const user = await this.findOneById(userId);
 
     await this.usersRepo.remove(user);
   }
+
+  // #endregion Delete
+
+  // #region Utils
+
+  static passwordMatch(password: string, hash: string): Promise<boolean> {
+    return bcrypt.compare(password, hash);
+  }
+
+  // #endregion Utils
 }
