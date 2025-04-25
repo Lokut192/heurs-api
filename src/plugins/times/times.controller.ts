@@ -109,6 +109,7 @@ export class TimesController {
   @ApiOperation({ summary: 'Delete one time for the current logged user' })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
+    description: 'Times has been successfully deleted',
   })
   async deleteOne(
     @Param('id', new ParseIntPipe()) strId: string,
