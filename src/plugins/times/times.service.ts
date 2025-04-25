@@ -22,9 +22,9 @@ export class TimesService {
       user: { id: userId },
     });
 
-    await this.timesRepo.save(time);
+    const { id: timeId } = await this.timesRepo.save(time);
 
-    return time;
+    return this.findOne(timeId, userId);
   }
 
   findAllTypes(): string[] {
