@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsPositive } from 'class-validator';
+import { IsEnum, IsNumber, IsPositive } from 'class-validator';
+import { TimeType } from 'src/plugins/times/TimeType.enum';
 
 export class CreateTimeDto {
   @IsNumber()
@@ -10,4 +11,8 @@ export class CreateTimeDto {
     description: 'Duration in minutes',
   })
   duration: number;
+
+  @IsEnum(TimeType)
+  @ApiProperty({ example: TimeType.Overtime })
+  type: TimeType;
 }

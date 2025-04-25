@@ -124,4 +124,16 @@ export class TimesController {
 
     return;
   }
+
+  @Get('types')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get times types' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'All available times types',
+    isArray: true,
+  })
+  findAllTypes() {
+    return this.timesService.findAllTypes();
+  }
 }

@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+import { TimeType } from '../../plugins/times/TimeType.enum';
 import { User } from '../user/user.entity';
 
 @Entity({ name: 'times' })
@@ -15,6 +16,9 @@ export class Time {
 
   @Column()
   duration: number;
+
+  @Column({ default: TimeType.Overtime, nullable: false })
+  type: string;
 
   @ManyToOne(() => User, (user) => user.times, { nullable: false })
   @JoinColumn({ name: 'user_id' })

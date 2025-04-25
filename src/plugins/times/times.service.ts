@@ -4,6 +4,8 @@ import { CreateTimeDto } from 'src/dto/time/create-time.dto';
 import { Time } from 'src/entities/time/time.entity';
 import { Repository } from 'typeorm';
 
+import { TimeType } from './TimeType.enum';
+
 @Injectable()
 export class TimesService {
   constructor(
@@ -14,12 +16,17 @@ export class TimesService {
   async createOne(userId: number, createTimeDto: CreateTimeDto) {
     const time = this.timesRepo.create({
       duration: createTimeDto.duration,
+      type: createTimeDto.type,
       user: { id: userId },
     });
 
     await this.timesRepo.save(time);
 
     return time;
+  }
+
+  findAllTypes(): string[] {
+    return Object.values(TimeType);
   }
 
   async findAll(userId: number): Promise<Time[]> {
