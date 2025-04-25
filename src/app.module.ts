@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TimesModule } from './plugins/times/times.module';
+import { TimesStatisticsModule } from './plugins/times-statistics/times-statistics.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { TimesModule } from './plugins/times/times.module';
     UsersModule,
     AuthModule,
     TimesModule,
+    TimesStatisticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
