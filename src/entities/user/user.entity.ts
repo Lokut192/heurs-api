@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+import { Time } from '../time/time.entity';
 import { UserSession } from './user-session.entity';
 
 @Entity({ name: 'users' })
@@ -30,6 +31,13 @@ export class User {
   sessions: UserSession[];
 
   // #endregion Properties
+
+  // #region Times
+
+  @OneToMany(() => Time, (time) => time.user)
+  times: Time[];
+
+  // #endregion Times
 
   // #region Methods
 
