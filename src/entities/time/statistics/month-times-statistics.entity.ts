@@ -1,4 +1,7 @@
+import { DateTime } from 'luxon';
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   Entity,
   JoinColumn,
@@ -12,6 +15,8 @@ import { User } from '../../user/user.entity';
 @Entity({ name: 'month_times_statistics' })
 @Unique(['month', 'year', 'userId'])
 export class MonthTimesStatistics {
+  // #region Properties
+
   @Column({ name: 'overtime_times_count' })
   overtimeTimesCount: number;
 
@@ -32,10 +37,30 @@ export class MonthTimesStatistics {
   @Column()
   year: number;
 
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP',
+    precision: 3,
+    name: 'updated_at',
+  })
+  updatedAt: Date;
+
   @PrimaryColumn({ name: 'user_id' })
   userId: number;
 
   @ManyToOne(() => User, (user) => user.id, { nullable: false })
   @JoinColumn({ name: 'user_id' })
   user: User;
+
+  //#endregion Properties
+
+  // #region Methods
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  async setUpdatedAtProperty() {
+    this.updatedAt = DateTime.now().toUTC().toJSDate();
+  }
+
+  // #endregion Methods
 }
