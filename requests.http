@@ -1,0 +1,18 @@
+POST http://localhost:3003/users/create
+Content-Type: application/json
+
+{
+  "username": "luke.ostrmn",
+  "email": "luke.ostermann@me.com",
+  "password": "Passw0rd$"
+}
+
+###
+
+POST http://localhost:3003/auth/sign-in
+Content-Type: application/json
+
+{
+  "login": "luke.ostermann@me.com",
+  "password": "Passw0rd$"
+}
