@@ -10,6 +10,7 @@ export class GetTimeDto {
   @Expose()
   duration: number;
 
+  @ApiProperty({ example: '2022-01-01T00:00:00.000Z' })
   @Expose()
   createdAt: string;
 }
