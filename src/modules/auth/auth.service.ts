@@ -6,6 +6,7 @@ import { createHash } from 'crypto';
 import { jwtDecode } from 'jwt-decode';
 import { DateTime } from 'luxon';
 import { SignInDto } from 'src/dto/auth/sign-in.dto';
+import { SignUpDto } from 'src/dto/auth/sign-up.dto';
 import { User } from 'src/entities/user/user.entity';
 import { UserSession } from 'src/entities/user/user-session.entity';
 import { Repository } from 'typeorm';
@@ -25,6 +26,38 @@ export class AuthService {
     @InjectRepository(UserSession)
     private readonly sessionsRepo: Repository<UserSession>,
   ) {}
+
+  // #region Sign Up
+
+  async signUp(signUpDto: SignUpDto) {
+    const user = await this.usersService.createOne({
+      email: signUpDto.email,
+      username: signUpDto.username,
+      password: signUpDto.password,
+    });
+
+    const refreshToken = await this.getUserRefreshToken(
+      user.id,
+      user.username,
+      user.email,
+    );
+    const newSession = await this.startSession(user.id, refreshToken);
+    const accessToken = await this.getUserAccessToken(
+      newSession.sessionId,
+      user.id,
+      user.username,
+      user.email,
+    );
+
+    return {
+      username: user.username,
+      email: user.email,
+      refreshToken,
+      accessToken,
+    };
+  }
+
+  // #endregion Sign Up
 
   // #region Login
 
