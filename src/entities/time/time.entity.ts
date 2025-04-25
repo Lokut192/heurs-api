@@ -20,6 +20,9 @@ export class Time {
   @Column({ default: TimeType.Overtime, nullable: false })
   type: string;
 
+  @Column({ type: 'date' })
+  date: Date;
+
   @ManyToOne(() => User, (user) => user.times, { nullable: false })
   @JoinColumn({ name: 'user_id' })
   user: User;

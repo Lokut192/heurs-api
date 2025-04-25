@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsPositive } from 'class-validator';
+import { IsEnum, IsISO8601, IsNumber, IsPositive } from 'class-validator';
 import { TimeType } from 'src/plugins/times/TimeType.enum';
 
 export class CreateTimeDto {
@@ -15,4 +15,11 @@ export class CreateTimeDto {
   @IsEnum(TimeType)
   @ApiProperty({ example: TimeType.Overtime })
   type: TimeType;
+
+  @ApiProperty({
+    example: '2025-01-01',
+    description: 'Time date in format yyyy-MM-dd',
+  })
+  @IsISO8601({ strict: true })
+  date: string;
 }

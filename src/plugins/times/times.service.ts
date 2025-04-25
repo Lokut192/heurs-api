@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DateTime } from 'luxon';
 import { CreateTimeDto } from 'src/dto/time/create-time.dto';
 import { Time } from 'src/entities/time/time.entity';
 import { Repository } from 'typeorm';
@@ -17,6 +18,7 @@ export class TimesService {
     const time = this.timesRepo.create({
       duration: createTimeDto.duration,
       type: createTimeDto.type,
+      date: DateTime.fromISO(createTimeDto.date).toUTC().toJSDate(),
       user: { id: userId },
     });
 
