@@ -48,17 +48,13 @@ export class RefreshTokenStrategy extends PassportStrategy(
     if (refreshToken === null) {
       throw new UnauthorizedException('Token invalid or expired.');
     }
-    this.logger.debug(`Parsing refresh token: ${refreshToken}`);
-
     const hashedToken = createHash('sha-256')
       .update(refreshToken)
       .digest('hex');
 
     const session = await this.sessionsRepo.findOne({
-      where: { refreshToken: hashedToken },
+      where: { refreshTokenHash: hashedToken },
     });
-
-    this.logger.debug(session);
 
     if (session === null) {
       throw new UnauthorizedException('Session expired.');

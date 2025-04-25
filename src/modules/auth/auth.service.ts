@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'crypto';
+import { jwtDecode } from 'jwt-decode';
+import { DateTime } from 'luxon';
 import { SignInDto } from 'src/dto/auth/sign-in.dto';
 import { User } from 'src/entities/user/user.entity';
 import { UserSession } from 'src/entities/user/user-session.entity';
@@ -92,11 +94,19 @@ export class AuthService {
     userId: number | string,
     refreshToken: string,
   ): Promise<UserSession> {
-    this.logger.debug(`Hashing refresh token: ${refreshToken}`);
+    const parsedRefreshToken = jwtDecode(refreshToken);
+    let expiresAt: Date | null = null;
+    if (typeof parsedRefreshToken.exp === 'number') {
+      expiresAt = DateTime.fromJSDate(new Date(parsedRefreshToken.exp * 1000))
+        .toUTC()
+        .toJSDate();
+    }
+
     const hashedRefreshToken = this.hashData(refreshToken);
     const session = this.sessionsRepo.create({
-      refreshToken: hashedRefreshToken,
+      refreshTokenHash: hashedRefreshToken,
       user: { id: Number(userId) },
+      expiresAt: expiresAt ?? undefined,
     });
 
     await this.sessionsRepo.save(session);
@@ -107,7 +117,7 @@ export class AuthService {
   async getSessionRefreshToken(refreshToken: string) {
     const hashedRefreshToken = this.hashData(refreshToken);
     const session = await this.sessionsRepo.findOne({
-      where: { refreshToken: hashedRefreshToken },
+      where: { refreshTokenHash: hashedRefreshToken },
     });
 
     if (session === null) {
@@ -125,7 +135,7 @@ export class AuthService {
     const hashedRefreshToken = this.hashData(refreshToken);
     await this.sessionsRepo.update(
       { user: { id: Number(userId) } },
-      { refreshToken: hashedRefreshToken },
+      { refreshTokenHash: hashedRefreshToken },
     );
   }
 
