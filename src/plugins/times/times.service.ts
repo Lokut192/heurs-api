@@ -37,10 +37,16 @@ export class TimesService {
 
     const { id: timeId } = await this.timesRepo.save(time);
 
-    void this.statsService.genUserMonthsStats(
+    void this.statsService.genUserMonthStats(
       userId,
       dateDateTime.month,
       dateDateTime.year,
+    );
+
+    void this.statsService.genUserWeekStats(
+      userId,
+      dateDateTime.weekNumber,
+      dateDateTime.weekYear,
     );
 
     return this.findOne(timeId, userId);
@@ -80,6 +86,32 @@ export class TimesService {
     return times;
   }
 
+  async findManyForWeek(userId: number, week: number, year): Promise<Time[]> {
+    // Define dates
+    const startDate = DateTime.fromObject(
+      { weekNumber: week, weekYear: year },
+      { zone: 'UTC' },
+    )
+      .startOf('week')
+      .toJSDate();
+    const endDate = DateTime.fromObject(
+      { weekNumber: week, weekYear: year },
+      { zone: 'UTC' },
+    )
+      .startOf('week')
+      .plus({ week: 1 })
+      .toJSDate();
+
+    const timesQuery = this.timesRepo.createQueryBuilder('time');
+    timesQuery.where('time.user_id = :userId', { userId });
+    timesQuery.andWhere('time.date >= :startDate', { startDate });
+    timesQuery.andWhere('time.date < :endDate', { endDate });
+
+    const times = await timesQuery.getMany();
+
+    return times;
+  }
+
   async findOne(id: number, userId: number) {
     const timeQuery = this.timesRepo.createQueryBuilder('time');
     timeQuery.where('time.id = :id', { id });
@@ -99,16 +131,18 @@ export class TimesService {
 
     const dateDateTime = DateTime.fromISO(time.date.toString()).toUTC();
 
-    this.logger.debug(
-      `Checking for ${dateDateTime.month} ${dateDateTime.year}`,
-    );
-
     await this.timesRepo.remove(time);
 
-    void this.statsService.genUserMonthsStats(
+    void this.statsService.genUserMonthStats(
       userId,
       dateDateTime.month,
       dateDateTime.year,
+    );
+
+    void this.statsService.genUserWeekStats(
+      userId,
+      dateDateTime.weekNumber,
+      dateDateTime.weekYear,
     );
   }
 }
