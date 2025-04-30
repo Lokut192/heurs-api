@@ -1,0 +1,17 @@
+services:
+  heurs-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_TYPE: sqlite
+      DB_NAME: "data/database.sqlite"
+      JWT_ACCESS_SECRET: "dhfusigfuhdgusgfhduisfgdhusgufurs"
+      JWT_REFRESH_SECRET: "dsfjiorhfgirehfsgdhsgkjvfdshjk"
+    volumes:
+      - .:/usr/src/app
+      - ./data:/usr/src/app/data
