@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/user/user.entity';
 import { Repository } from 'typeorm';
@@ -13,7 +13,13 @@ export class MeService {
   // #region READ
 
   async getMe(userId: number) {
-    return await this.usersRepo.findOne({ where: { id: userId } });
+    const user = await this.usersRepo.findOne({ where: { id: userId } });
+
+    if (user === null) {
+      throw new UnauthorizedException();
+    }
+
+    return user;
   }
 
   // #endregion READ
