@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { MeModule } from './modules/me/me.module';
 import { UsersModule } from './modules/users/users.module';
 import { TimesModule } from './plugins/times/times.module';
 import { TimesStatisticsModule } from './plugins/times-statistics/times-statistics.module';
@@ -33,6 +34,7 @@ import { TimesStatisticsModule } from './plugins/times-statistics/times-statisti
     AuthModule,
     TimesModule,
     TimesStatisticsModule,
+    MeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
