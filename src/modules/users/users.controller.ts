@@ -88,7 +88,7 @@ export class UsersController {
 
     const user = await this.usersService.findOneById(userId);
 
-    return plainToInstance(GetUserDto, user);
+    return plainToInstance(GetUserDto, user, { excludeExtraneousValues: true });
   }
 
   // #endregion Read
@@ -125,7 +125,7 @@ export class UsersController {
 
     const user = await this.usersService.createOne(userDto);
 
-    return plainToInstance(GetUserDto, user);
+    return plainToInstance(GetUserDto, user, { excludeExtraneousValues: true });
   }
 
   // #endregion Create
@@ -184,7 +184,7 @@ export class UsersController {
 
     const user = await this.usersService.updateOne(userDto);
 
-    return plainToInstance(GetUserDto, user);
+    return plainToInstance(GetUserDto, user, { excludeExtraneousValues: true });
   }
 
   // #endregion Update
