@@ -206,6 +206,14 @@ export class TimesService {
     return this.findOne(updateTimeDto.id, userId);
   }
 
+  async deleteAll(userId: number) {
+    await this.timesRepo.delete({ user: { id: userId } });
+
+    void this.statsService.deleteAllMonthsStats(userId);
+
+    void this.statsService.deleteAllWeeksStats(userId);
+  }
+
   async deleteOne(id: number, userId: number) {
     const time = await this.findOne(id, userId);
 

@@ -174,4 +174,16 @@ export class TimesStatisticsService {
   }
 
   // #endregion Generate
+
+  // #region Delete stats
+
+  public async deleteAllWeeksStats(userId: number): Promise<void> {
+    await this.weekStatsRepo.delete({ user: { id: userId } });
+  }
+
+  public async deleteAllMonthsStats(userId: number): Promise<void> {
+    await this.monthStatsRepo.delete({ user: { id: userId } });
+  }
+
+  // #endregion Delete stats
 }

@@ -183,6 +183,19 @@ export class TimesController {
     return;
   }
 
+  @Delete('all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete all times for the current logged user' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'All times have been successfully deleted',
+  })
+  async deleteAll(@LoggedUser() loggedUser: LoggedUserType) {
+    await this.timesService.deleteAll(loggedUser.userId);
+
+    return;
+  }
+
   @Get('types')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get times types' })
