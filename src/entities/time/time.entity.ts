@@ -17,8 +17,13 @@ export class Time {
   @Column()
   duration: number;
 
-  @Column({ default: TimeType.Overtime, nullable: false })
-  type: string;
+  @Column({
+    default: TimeType.Overtime,
+    nullable: false,
+    type: 'enum',
+    enum: TimeType,
+  })
+  type: TimeType;
 
   @Column({ type: 'date' })
   date: Date;
