@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Profile } from 'src/entities/user/profile/profile.entity';
 import { User } from 'src/entities/user/user.entity';
 
 import { SeederService } from './seeder.service';
@@ -29,7 +30,7 @@ import { SeederService } from './seeder.service';
             : false,
       }),
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Profile]),
   ],
   providers: [SeederService],
 })

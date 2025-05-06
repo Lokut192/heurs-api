@@ -22,7 +22,7 @@ import { LoggedUserType } from 'src/modules/auth/LoggedUser.type';
 
 import { TimesStatisticsService } from './times-statistics.service';
 
-@Controller('plugins/times-statistics')
+@Controller('times/statistics')
 @ApiBearerAuth()
 @ApiTags('Times statistics')
 @UseGuards(AccessTokenGuard)

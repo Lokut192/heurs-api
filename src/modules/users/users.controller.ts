@@ -4,7 +4,6 @@ import {
   Controller,
   Delete,
   Get,
-  GoneException,
   HttpCode,
   HttpStatus,
   Param,
@@ -18,26 +17,27 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
-  ApiExcludeController,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { LoggedUser } from 'src/decorators/auth/LoggedUser.decorator';
+import { HasProfile } from 'src/decorators/permissions/has-profile.decorator';
 import { CreateUserDto } from 'src/dto/user/create-user.dto';
 import { GetUserDto } from 'src/dto/user/get-user.dto';
 import { UpdateUserDto } from 'src/dto/user/update-user.dto';
 
 import { AccessTokenGuard } from '../auth/access-token.guard';
-import { LoggedUserType } from '../auth/LoggedUser.type';
+import { HasProfileGuard } from './user-profile/has-profile.guard';
+import { Profiles } from './user-profile/profiles.enum';
 import { UsersService } from './users.service';
 
 @Controller('users')
 @ApiTags('Users')
-@ApiExcludeController(process.env.NODE_ENV !== 'development')
 @ApiBearerAuth()
+@UseGuards(AccessTokenGuard, HasProfileGuard)
+@HasProfile(Profiles.Admin)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -52,15 +52,7 @@ export class UsersController {
     type: GetUserDto,
     isArray: true,
   })
-  @UseGuards(AccessTokenGuard)
-  async getUsers(@LoggedUser() loggedUser: LoggedUserType) {
-    if (
-      process.env.NODE_ENV !== 'development' &&
-      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
-    ) {
-      throw new GoneException('Endpoint not available in production yet.');
-    }
-
+  async getUsers() {
     const users = await this.usersService.findMany();
 
     return plainToInstance(GetUserDto, users);
@@ -80,18 +72,7 @@ export class UsersController {
     schema: { type: 'number' },
     description: 'The user id',
   })
-  @UseGuards(AccessTokenGuard)
-  async getUserById(
-    @Param('id', new ParseIntPipe()) idStr: string,
-    @LoggedUser() loggedUser: LoggedUserType,
-  ) {
-    if (
-      process.env.NODE_ENV !== 'development' &&
-      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
-    ) {
-      throw new GoneException('Endpoint not available in production yet.');
-    }
-
+  async getUserById(@Param('id', new ParseIntPipe()) idStr: string) {
     const userId = Number(idStr);
 
     if (Number.isNaN(userId) || userId <= 0) {
@@ -130,22 +111,7 @@ export class UsersController {
       transformOptions: { enableImplicitConversion: true },
     }),
   )
-  async createUser(
-    @Body() userDto: CreateUserDto,
-    @LoggedUser() loggedUser: LoggedUserType,
-  ) {
-    if (process.env.NODE_ENV !== 'development') {
-      if (!loggedUser) {
-        const allUsers = await this.usersService.findMany();
-
-        if (allUsers.length > 0) {
-          throw new GoneException('Endpoint not available in production yet.');
-        }
-      } else if (loggedUser.userEmail !== 'luke.ostermann@gmail.com') {
-        throw new GoneException('Endpoint not available in production yet.');
-      }
-    }
-
+  async createUser(@Body() userDto: CreateUserDto) {
     const user = await this.usersService.createOne(userDto);
 
     return plainToInstance(GetUserDto, user, { excludeExtraneousValues: true });
@@ -187,19 +153,10 @@ export class UsersController {
       transformOptions: { enableImplicitConversion: true },
     }),
   )
-  @UseGuards(AccessTokenGuard)
   async updateOneUser(
     @Param('id', new ParseIntPipe()) idStr: string,
     @Body() userDto: UpdateUserDto,
-    @LoggedUser() loggedUser: LoggedUserType,
   ) {
-    if (
-      process.env.NODE_ENV !== 'development' &&
-      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
-    ) {
-      throw new GoneException('Endpoint not available in production yet.');
-    }
-
     const userId = Number(idStr);
 
     if (Number.isNaN(userId) || userId <= 0) {
@@ -242,18 +199,7 @@ export class UsersController {
       transformOptions: { enableImplicitConversion: true },
     }),
   )
-  @UseGuards(AccessTokenGuard)
-  async deleteOneUser(
-    @Param('id', new ParseIntPipe()) idStr: string,
-    @LoggedUser() loggedUser: LoggedUserType,
-  ) {
-    if (
-      process.env.NODE_ENV !== 'development' &&
-      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
-    ) {
-      throw new GoneException('Endpoint not available in production yet.');
-    }
-
+  async deleteOneUser(@Param('id', new ParseIntPipe()) idStr: string) {
     const userId = Number(idStr);
 
     if (Number.isNaN(userId) || userId <= 0) {

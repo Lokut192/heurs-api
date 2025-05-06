@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { TimeType } from 'src/plugins/times/TimeType.enum';
+import { TimeType } from 'src/modules/times/TimeType.enum';
 
 export class GetTimeDto {
   @ApiProperty({ example: 1 })

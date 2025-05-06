@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Time } from 'src/entities/time/time.entity';
 
-import { TimesStatisticsModule } from '../times-statistics/times-statistics.module';
+import { TimesStatisticsModule } from './statistics/times-statistics.module';
 import { TimesController } from './times.controller';
 import { TimesService } from './times.service';
 
@@ -12,7 +12,7 @@ import { TimesService } from './times.service';
     forwardRef(() => TimesStatisticsModule),
   ],
   controllers: [TimesController],
-  exports: [TimesService],
+  exports: [TimesService, TimesStatisticsModule],
   providers: [TimesService],
 })
 export class TimesModule {}

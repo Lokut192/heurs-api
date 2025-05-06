@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-import { TimeType } from '../../plugins/times/TimeType.enum';
+import { TimeType } from '../../modules/times/TimeType.enum';
 import { User } from '../user/user.entity';
 
 @Entity({ name: 'times' })

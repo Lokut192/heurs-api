@@ -1,20 +1,26 @@
 import {
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { CreateUserDto } from 'src/dto/user/create-user.dto';
 import { UpdateUserDto } from 'src/dto/user/update-user.dto';
+import { Profile } from 'src/entities/user/profile/profile.entity';
 import { User } from 'src/entities/user/user.entity';
 import { Repository } from 'typeorm';
+
+import { Profiles } from './user-profile/profiles.enum';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
+    @InjectRepository(Profile)
+    private readonly profilesRepo: Repository<Profile>,
   ) {}
 
   // #region Read
@@ -69,6 +75,20 @@ export class UsersService {
     const users = await query.getMany();
 
     return users;
+  }
+
+  async findUserProfiles(userId: number): Promise<Profile[]> {
+    const user = await this.usersRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.profiles', 'profiles')
+      .where('user.id = :id', { id: userId })
+      .getOne();
+
+    if (user === null) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user.profiles;
   }
 
   // #endregion Read
@@ -150,7 +170,18 @@ export class UsersService {
       throw new ConflictException('Email already in use');
     }
 
-    const newUser = this.usersRepo.create(user);
+    const userUserProfile = await this.profilesRepo.findOneBy({
+      identifier: Profiles.User,
+    });
+
+    if (userUserProfile === null) {
+      throw new InternalServerErrorException('Profiles are not created.');
+    }
+
+    const newUser = this.usersRepo.create({
+      ...user,
+      profiles: [{ id: userUserProfile.id }],
+    });
 
     await this.usersRepo.save(newUser);
 

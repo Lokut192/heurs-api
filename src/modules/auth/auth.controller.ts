@@ -24,13 +24,18 @@ import { SignUpDto } from 'src/dto/auth/sign-up.dto';
 import { SignUpContentDto } from 'src/dto/auth/sign-up-content.dto';
 import { AuthTokensDto } from 'src/dto/auth/tokens.dto';
 
+import { Profiles } from '../users/user-profile/profiles.enum';
+import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
 import { RefreshTokenGuard } from './refresh-token.guard';
 
 @Controller('auth')
 @ApiTags('Authentication')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post('sign-up')
   @HttpCode(HttpStatus.OK)
@@ -111,6 +116,10 @@ export class AuthController {
         // @ts-ignore
         req.user!.refreshToken! as string,
       );
+      const userProfiles = await this.usersService.findUserProfiles(
+        // @ts-ignore
+        req.user!.userId! as number,
+      );
 
       const accessToken = await this.authService.getUserAccessToken(
         session.sessionId,
@@ -120,6 +129,7 @@ export class AuthController {
         req.user!.userUsername! as string,
         // @ts-ignore
         req.user!.userEmail! as string,
+        userProfiles.map((p) => p.identifier) as Profiles[],
       );
 
       return { accessToken };
