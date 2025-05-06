@@ -11,6 +11,7 @@ import { User } from 'src/entities/user/user.entity';
 import { UserSession } from 'src/entities/user/user-session.entity';
 import { Repository } from 'typeorm';
 
+import { Profiles } from '../users/user-profile/profiles.enum';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
@@ -36,6 +37,8 @@ export class AuthService {
       password: signUpDto.password,
     });
 
+    const userProfiles = await this.usersService.findUserProfiles(user.id);
+
     const refreshToken = await this.getUserRefreshToken(
       user.id,
       user.username,
@@ -47,6 +50,9 @@ export class AuthService {
       user.id,
       user.username,
       user.email,
+      userProfiles.map(
+        (profile) => profile.identifier,
+      ) as unknown as Profiles[],
     );
 
     return {
@@ -103,6 +109,9 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
+    // Get user with profiles
+    const userProfiles = await this.usersService.findUserProfiles(user.id);
+
     const refreshToken = await this.getUserRefreshToken(
       user.id,
       user.username,
@@ -114,6 +123,9 @@ export class AuthService {
       user.id,
       user.username,
       user.email,
+      userProfiles.map(
+        (profile) => profile.identifier,
+      ) as unknown as Profiles[],
     );
 
     return { refreshToken, accessToken };
@@ -177,6 +189,7 @@ export class AuthService {
     userId: number,
     userUsername: string,
     userEmail: string,
+    userProfiles: Profiles[],
   ) {
     const accessSecret = this.configService.get<string>(
       'JWT_ACCESS_SECRET',
@@ -184,7 +197,7 @@ export class AuthService {
     );
 
     const accessToken = await this.jwtService.signAsync(
-      { sessionId, userId, userUsername, userEmail },
+      { sessionId, userId, userUsername, userEmail, userProfiles },
       { secret: accessSecret, expiresIn: '1h', algorithm: 'HS256' },
     );
 

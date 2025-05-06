@@ -11,8 +11,8 @@ import { WeekTimesStatistics } from 'src/entities/time/statistics/week-times-sta
 import { Time } from 'src/entities/time/time.entity';
 import { Repository } from 'typeorm';
 
-import { TimesService } from '../times/times.service';
-import { TimeType } from '../times/TimeType.enum';
+import { TimesService } from '../times.service';
+import { TimeType } from '../TimeType.enum';
 
 @Injectable()
 export class TimesStatisticsService {

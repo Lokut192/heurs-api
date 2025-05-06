@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsISO8601, IsNumber, IsPositive } from 'class-validator';
-import { TimeType } from 'src/plugins/times/TimeType.enum';
+import { TimeType } from 'src/modules/times/TimeType.enum';
 
 export class CreateTimeDto {
   @IsNumber()

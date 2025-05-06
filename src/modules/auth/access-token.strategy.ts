@@ -3,11 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
+import { Profiles } from '../users/user-profile/profiles.enum';
+
 export type AccessTokenJwtPayload = {
   sessionId: string;
   userId: number;
   userUsername: string;
   userEmail: string;
+  userProfiles: Profiles[];
 };
 
 @Injectable()

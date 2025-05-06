@@ -4,11 +4,14 @@ import {
   BeforeUpdate,
   Column,
   Entity,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 import { Time } from '../time/time.entity';
+import { Profile } from './profile/profile.entity';
 import { UserSession } from './user-session.entity';
 
 @Entity({ name: 'users' })
@@ -31,6 +34,24 @@ export class User {
   sessions: UserSession[];
 
   // #endregion Properties
+
+  // #region Profiles
+
+  @ManyToMany(() => Profile, (profile) => profile.users)
+  @JoinTable({
+    name: 'user_profile',
+    joinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'profile_id',
+      referencedColumnName: 'id',
+    },
+  })
+  profiles: Profile[];
+
+  // #endregion Profiles
 
   // #region Times
 

@@ -13,7 +13,7 @@ import { PutTimeDto } from 'src/dto/time/put-time.dto';
 import { Time } from 'src/entities/time/time.entity';
 import { Repository } from 'typeorm';
 
-import { TimesStatisticsService } from '../times-statistics/times-statistics.service';
+import { TimesStatisticsService } from './statistics/times-statistics.service';
 import { TimeType } from './TimeType.enum';
 
 @Injectable()

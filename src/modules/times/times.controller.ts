@@ -36,7 +36,7 @@ import { TimesService } from './times.service';
 @UseGuards(AccessTokenGuard)
 @ApiBearerAuth()
 @ApiTags('Times')
-@Controller('plugins/times')
+@Controller('times')
 export class TimesController {
   constructor(private readonly timesService: TimesService) {}
 

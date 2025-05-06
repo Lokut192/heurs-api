@@ -7,9 +7,8 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { MeModule } from './modules/me/me.module';
 import { SeederModule } from './modules/seeder/seeder.module';
+import { TimesModule } from './modules/times/times.module';
 import { UsersModule } from './modules/users/users.module';
-import { TimesModule } from './plugins/times/times.module';
-import { TimesStatisticsModule } from './plugins/times-statistics/times-statistics.module';
 
 @Module({
   imports: [
@@ -39,7 +38,6 @@ import { TimesStatisticsModule } from './plugins/times-statistics/times-statisti
     UsersModule,
     AuthModule,
     TimesModule,
-    TimesStatisticsModule,
     MeModule,
     SeederModule,
   ],
