@@ -23,6 +23,11 @@ export class SeederService {
         username: 'luke.ostrmn',
         password: 'SrongPassw0rd$',
       },
+      {
+        username: 'jikai',
+        email: 'jikai.bh@me.com',
+        password: 'Drudge7-Quiver0-Multitude2-Heaving2-Crestless7',
+      },
       // {
       //   email: 'nathan.baumann@me.com',
       //   username: 'nathan.bmn',
