@@ -30,11 +30,9 @@ export class WeekTimesStatistics {
   totalDuration: number;
 
   @PrimaryColumn()
-  @Column()
   week: number;
 
   @PrimaryColumn()
-  @Column()
   year: number;
 
   @Column({

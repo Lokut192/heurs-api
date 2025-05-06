@@ -32,11 +32,13 @@ export class TimesStatisticsService {
   // #region Month stats
 
   async findForMonth(userId: number, month: number, year: number) {
-    const stat = await this.monthStatsRepo.findOneBy({
-      userId,
-      month,
-      year,
-    });
+    const query = this.monthStatsRepo.createQueryBuilder('stats');
+
+    query.where('stats.user_id = :userId', { userId });
+    query.andWhere('stats.month = :month', { month });
+    query.andWhere('stats.year = :year', { year });
+
+    const stat = await query.getOne();
 
     if (stat === null) {
       throw new NotFoundException('Month statistics not found.');
@@ -71,8 +73,11 @@ export class TimesStatisticsService {
       month,
       year,
       user: { id: userId },
+      userId,
       ...stats,
     });
+
+    console.log('Saving stats...', stat);
 
     await this.monthStatsRepo.save(stat);
   }
