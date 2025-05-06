@@ -19,8 +19,10 @@ import { plainToInstance } from 'class-transformer';
 import { DateTime } from 'luxon';
 import { LoggedUser } from 'src/decorators/auth/LoggedUser.decorator';
 import { GetMonthTimesStatsDto } from 'src/dto/time/statistics/month/get-month-stats.dto';
+import { MonthTimesStatistics } from 'src/entities/time/statistics/month-times-statistics.entity';
 import { AccessTokenGuard } from 'src/modules/auth/access-token.guard';
 import { LoggedUserType } from 'src/modules/auth/LoggedUser.type';
+import { DeepPartial } from 'typeorm';
 
 import { TimesStatisticsService } from './times-statistics.service';
 
@@ -64,15 +66,32 @@ export class TimesStatisticsController {
       throw new BadRequestException('Invalid year number.');
     }
 
-    const stat = await this.timesStatsService.findForMonth(
-      loggedUser.userId,
-      month,
-      year,
-    );
+    try {
+      const stat = await this.timesStatsService.findForMonth(
+        loggedUser.userId,
+        month,
+        year,
+      );
 
-    return plainToInstance(GetMonthTimesStatsDto, stat, {
-      excludeExtraneousValues: true,
-    });
+      return plainToInstance(GetMonthTimesStatsDto, stat, {
+        excludeExtraneousValues: true,
+      });
+    } catch (_statsNotFoundException) {
+      const defaultStats: DeepPartial<MonthTimesStatistics> = {
+        month,
+        year,
+        userId: loggedUser.userId,
+        overtimeTimesCount: 0,
+        overtimeTotalDuration: 0,
+        timesCount: 0,
+        totalDuration: 0,
+        updatedAt: DateTime.now().toUTC().toISO(),
+      };
+
+      return plainToInstance(GetMonthTimesStatsDto, defaultStats, {
+        excludeExtraneousValues: true,
+      });
+    }
   }
 
   // #endregion Read
