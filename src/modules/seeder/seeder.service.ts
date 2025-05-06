@@ -17,18 +17,7 @@ export class SeederService {
   }
 
   private async createUsers() {
-    const users: DeepPartial<User>[] = [
-      {
-        email: 'luke.ostermann@gmail.com',
-        username: 'luke.ostrmn',
-        password: 'SrongPassw0rd$',
-      },
-      // {
-      //   email: 'nathan.baumann@me.com',
-      //   username: 'nathan.bmn',
-      //   password: 'SrongPassw0rd$',
-      // },
-    ];
+    const users: DeepPartial<User>[] = [];
 
     for (const user of users) {
       // Check if user already exists by username

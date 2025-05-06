@@ -25,11 +25,13 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import { LoggedUser } from 'src/decorators/auth/LoggedUser.decorator';
 import { CreateUserDto } from 'src/dto/user/create-user.dto';
 import { GetUserDto } from 'src/dto/user/get-user.dto';
 import { UpdateUserDto } from 'src/dto/user/update-user.dto';
 
 import { AccessTokenGuard } from '../auth/access-token.guard';
+import { LoggedUserType } from '../auth/LoggedUser.type';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -51,8 +53,11 @@ export class UsersController {
     type: GetUserDto,
     isArray: true,
   })
-  async getUsers() {
-    if (process.env.NODE_ENV !== 'development') {
+  async getUsers(@LoggedUser() loggedUser: LoggedUserType) {
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
+    ) {
       throw new GoneException('Endpoint not available in production yet.');
     }
 
@@ -75,8 +80,14 @@ export class UsersController {
     schema: { type: 'number' },
     description: 'The user id',
   })
-  async getUserById(@Param('id', new ParseIntPipe()) idStr: string) {
-    if (process.env.NODE_ENV !== 'development') {
+  async getUserById(
+    @Param('id', new ParseIntPipe()) idStr: string,
+    @LoggedUser() loggedUser: LoggedUserType,
+  ) {
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
+    ) {
       throw new GoneException('Endpoint not available in production yet.');
     }
 
@@ -118,8 +129,14 @@ export class UsersController {
       transformOptions: { enableImplicitConversion: true },
     }),
   )
-  async createUser(@Body() userDto: CreateUserDto) {
-    if (process.env.NODE_ENV !== 'development') {
+  async createUser(
+    @Body() userDto: CreateUserDto,
+    @LoggedUser() loggedUser: LoggedUserType,
+  ) {
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
+    ) {
       throw new GoneException('Endpoint not available in production yet.');
     }
 
@@ -167,8 +184,12 @@ export class UsersController {
   async updateOneUser(
     @Param('id', new ParseIntPipe()) idStr: string,
     @Body() userDto: UpdateUserDto,
+    @LoggedUser() loggedUser: LoggedUserType,
   ) {
-    if (process.env.NODE_ENV !== 'development') {
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
+    ) {
       throw new GoneException('Endpoint not available in production yet.');
     }
 
@@ -214,8 +235,14 @@ export class UsersController {
       transformOptions: { enableImplicitConversion: true },
     }),
   )
-  async deleteOneUser(@Param('id', new ParseIntPipe()) idStr: string) {
-    if (process.env.NODE_ENV !== 'development') {
+  async deleteOneUser(
+    @Param('id', new ParseIntPipe()) idStr: string,
+    @LoggedUser() loggedUser: LoggedUserType,
+  ) {
+    if (
+      process.env.NODE_ENV !== 'development' &&
+      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
+    ) {
       throw new GoneException('Endpoint not available in production yet.');
     }
 
