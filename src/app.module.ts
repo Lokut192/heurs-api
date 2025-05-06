@@ -27,7 +27,8 @@ import { TimesStatisticsModule } from './plugins/times-statistics/times-statisti
         username: configService.get<string>('DB_USER', 'heurs_api'),
         password: configService.get<string>('DB_PASSWORD', 'heurs_api'),
         entities: ['dist/entities/**/*.entity.js'],
-        synchronize: false,
+        synchronize:
+          configService.get<string>('NODE_ENV', 'production') !== 'development',
         migrations: ['dist/migrations/*.js'],
         logging:
           configService.get<string>('NODE_ENV', 'production') === 'development'
