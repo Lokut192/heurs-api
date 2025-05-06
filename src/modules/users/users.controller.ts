@@ -38,7 +38,6 @@ import { UsersService } from './users.service';
 @ApiTags('Users')
 @ApiExcludeController(process.env.NODE_ENV !== 'development')
 @ApiBearerAuth()
-@UseGuards(AccessTokenGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -53,6 +52,7 @@ export class UsersController {
     type: GetUserDto,
     isArray: true,
   })
+  @UseGuards(AccessTokenGuard)
   async getUsers(@LoggedUser() loggedUser: LoggedUserType) {
     if (
       process.env.NODE_ENV !== 'development' &&
@@ -80,6 +80,7 @@ export class UsersController {
     schema: { type: 'number' },
     description: 'The user id',
   })
+  @UseGuards(AccessTokenGuard)
   async getUserById(
     @Param('id', new ParseIntPipe()) idStr: string,
     @LoggedUser() loggedUser: LoggedUserType,
@@ -133,13 +134,14 @@ export class UsersController {
     @Body() userDto: CreateUserDto,
     @LoggedUser() loggedUser: LoggedUserType,
   ) {
-    if (
-      process.env.NODE_ENV !== 'development' &&
-      loggedUser.userEmail !== 'luke.ostermann@gmail.com'
-    ) {
-      const allUsers = await this.usersService.findMany();
+    if (process.env.NODE_ENV !== 'development') {
+      if (!loggedUser) {
+        const allUsers = await this.usersService.findMany();
 
-      if (allUsers.length > 0) {
+        if (allUsers.length > 0) {
+          throw new GoneException('Endpoint not available in production yet.');
+        }
+      } else if (loggedUser.userEmail !== 'luke.ostermann@gmail.com') {
         throw new GoneException('Endpoint not available in production yet.');
       }
     }
@@ -185,6 +187,7 @@ export class UsersController {
       transformOptions: { enableImplicitConversion: true },
     }),
   )
+  @UseGuards(AccessTokenGuard)
   async updateOneUser(
     @Param('id', new ParseIntPipe()) idStr: string,
     @Body() userDto: UpdateUserDto,
@@ -239,6 +242,7 @@ export class UsersController {
       transformOptions: { enableImplicitConversion: true },
     }),
   )
+  @UseGuards(AccessTokenGuard)
   async deleteOneUser(
     @Param('id', new ParseIntPipe()) idStr: string,
     @LoggedUser() loggedUser: LoggedUserType,
