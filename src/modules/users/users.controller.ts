@@ -137,7 +137,11 @@ export class UsersController {
       process.env.NODE_ENV !== 'development' &&
       loggedUser.userEmail !== 'luke.ostermann@gmail.com'
     ) {
-      throw new GoneException('Endpoint not available in production yet.');
+      const allUsers = await this.usersService.findMany();
+
+      if (allUsers.length > 0) {
+        throw new GoneException('Endpoint not available in production yet.');
+      }
     }
 
     const user = await this.usersService.createOne(userDto);
