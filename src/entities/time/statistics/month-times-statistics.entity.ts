@@ -30,11 +30,9 @@ export class MonthTimesStatistics {
   totalDuration: number;
 
   @PrimaryColumn()
-  @Column()
   month: number;
 
   @PrimaryColumn()
-  @Column()
   year: number;
 
   @Column({
