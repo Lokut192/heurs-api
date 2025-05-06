@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   forwardRef,
   Inject,
   Injectable,
@@ -8,6 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DateTime } from 'luxon';
 import { CreateTimeDto } from 'src/dto/time/create-time.dto';
+import { PutTimeDto } from 'src/dto/time/put-time.dto';
 import { Time } from 'src/entities/time/time.entity';
 import { Repository } from 'typeorm';
 
@@ -56,10 +58,27 @@ export class TimesService {
     return Object.values(TimeType);
   }
 
-  async findAll(userId: number): Promise<Time[]> {
+  async findAll(
+    userId: number,
+    params: {
+      from?: string | undefined;
+      to?: string | undefined;
+      orderby: keyof Time;
+      order: 'DESC' | 'ASC';
+    } = { orderby: 'date', order: 'DESC' },
+  ): Promise<Time[]> {
     const timesQuery = this.timesRepo.createQueryBuilder('time');
 
     timesQuery.where('time.user_id = :userId', { userId });
+
+    if (params.from) {
+      timesQuery.andWhere('time.date >= :from', { from: params.from });
+    }
+    if (params.to) {
+      timesQuery.andWhere('time.date < :to', { to: params.to });
+    }
+
+    timesQuery.orderBy(`time.${params.orderby}`, params.order);
 
     const times = await timesQuery.getMany();
 
@@ -124,6 +143,75 @@ export class TimesService {
     }
 
     return time;
+  }
+
+  async updateOne(userId: number, updateTimeDto: PutTimeDto) {
+    let time: Time | null = null;
+
+    try {
+      time = await this.findOne(updateTimeDto.id, userId);
+    } catch (_timeNotFoundException) {
+      // Do nothing here
+    }
+
+    if (time === null) {
+      throw new BadRequestException('Time does not exist.');
+    }
+
+    const prevDateDateTime = DateTime.fromISO(time.date.toString()).toUTC();
+    const newDateDateTime = DateTime.fromISO(
+      updateTimeDto.date.toString(),
+    ).toUTC();
+
+    time.date = newDateDateTime.toJSDate();
+    time.duration = updateTimeDto.duration;
+    time.type = updateTimeDto.type;
+
+    await this.timesRepo.save(time);
+
+    // Update prev stats
+    void this.statsService.genUserMonthStats(
+      userId,
+      prevDateDateTime.month,
+      prevDateDateTime.year,
+    );
+    void this.statsService.genUserWeekStats(
+      userId,
+      prevDateDateTime.weekNumber,
+      prevDateDateTime.weekYear,
+    );
+
+    // Update new stats only if needed
+    if (
+      prevDateDateTime.month !== newDateDateTime.month ||
+      newDateDateTime.year !== prevDateDateTime.year
+    ) {
+      void this.statsService.genUserMonthStats(
+        userId,
+        newDateDateTime.month,
+        newDateDateTime.year,
+      );
+    }
+    if (
+      prevDateDateTime.weekNumber !== newDateDateTime.weekNumber ||
+      newDateDateTime.year !== prevDateDateTime.weekYear
+    ) {
+      void this.statsService.genUserWeekStats(
+        userId,
+        newDateDateTime.weekNumber,
+        newDateDateTime.weekYear,
+      );
+    }
+
+    return this.findOne(updateTimeDto.id, userId);
+  }
+
+  async deleteAll(userId: number) {
+    await this.timesRepo.delete({ user: { id: userId } });
+
+    void this.statsService.deleteAllMonthsStats(userId);
+
+    void this.statsService.deleteAllWeeksStats(userId);
   }
 
   async deleteOne(id: number, userId: number) {

@@ -23,14 +23,14 @@ export class UserSession {
   @Column({
     name: 'started_at',
     default: () => 'CURRENT_TIMESTAMP',
-    type: 'datetime',
+    type: 'timestamptz',
     precision: 3,
   })
   startedAt: Date;
 
   @Column({
     name: 'expires _at',
-    type: 'datetime',
+    type: 'timestamptz',
     precision: 3,
     nullable: true,
   })

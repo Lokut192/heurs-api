@@ -9,6 +9,8 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
+  Query,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -16,6 +18,7 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -23,6 +26,8 @@ import { plainToInstance } from 'class-transformer';
 import { LoggedUser } from 'src/decorators/auth/LoggedUser.decorator';
 import { CreateTimeDto } from 'src/dto/time/create-time.dto';
 import { GetTimeDto } from 'src/dto/time/get-time.dto';
+import { GetTimesQueryDto } from 'src/dto/time/get-times-query.dto';
+import { PutTimeDto } from 'src/dto/time/put-time.dto';
 import { AccessTokenGuard } from 'src/modules/auth/access-token.guard';
 import { LoggedUserType } from 'src/modules/auth/LoggedUser.type';
 
@@ -73,8 +78,27 @@ export class TimesController {
     type: GetTimeDto,
     isArray: true,
   })
-  async findAll(@LoggedUser() loggedUser: LoggedUserType) {
-    const times = await this.timesService.findAll(loggedUser.userId);
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      stopAtFirstError: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: false },
+    }),
+  )
+  async findAll(
+    @LoggedUser() loggedUser: LoggedUserType,
+    @Query() query: GetTimesQueryDto,
+  ) {
+    const times = await this.timesService.findAll(loggedUser.userId, {
+      ...query,
+      // from: query.from
+      //   ? DateTime.fromISO(query.from, { zone: 'UTC' }).toJSDate()
+      //   : undefined,
+      // to: query.to
+      //   ? DateTime.fromISO(query.to, { zone: 'UTC' }).toJSDate()
+      //   : undefined,
+    });
 
     return plainToInstance(GetTimeDto, times, {
       excludeExtraneousValues: true,
@@ -89,6 +113,7 @@ export class TimesController {
     type: GetTimeDto,
     isArray: false,
   })
+  @ApiParam({ name: 'id', type: 'number' })
   async findOne(
     @Param('id', new ParseIntPipe()) strId: string,
     @LoggedUser() loggedUser: LoggedUserType,
@@ -104,7 +129,39 @@ export class TimesController {
     return plainToInstance(GetTimeDto, time, { excludeExtraneousValues: true });
   }
 
+  @Put('id/:id')
+  @HttpCode(HttpStatus.CREATED)
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      stopAtFirstError: false,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  )
+  @ApiParam({ name: 'id', type: 'number' })
+  @ApiOperation({ summary: 'CrUpdate one time for the current logged user' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    type: GetTimeDto,
+    isArray: false,
+  })
+  async updateOne(
+    @Body() updateTimeDto: PutTimeDto,
+    @LoggedUser() loggedUser: LoggedUserType,
+  ) {
+    const time = await this.timesService.updateOne(
+      loggedUser.userId,
+      updateTimeDto,
+    );
+
+    return plainToInstance(GetTimeDto, time, {
+      excludeExtraneousValues: true,
+    });
+  }
+
   @Delete('id/:id')
+  @ApiParam({ name: 'id', type: 'number' })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete one time for the current logged user' })
   @ApiResponse({
@@ -122,6 +179,19 @@ export class TimesController {
     }
 
     await this.timesService.deleteOne(id, loggedUser.userId);
+
+    return;
+  }
+
+  @Delete('all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete all times for the current logged user' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'All times have been successfully deleted',
+  })
+  async deleteAll(@LoggedUser() loggedUser: LoggedUserType) {
+    await this.timesService.deleteAll(loggedUser.userId);
 
     return;
   }

@@ -2,6 +2,14 @@
 
 A minimal and opinionated NestJS starter with built-in development tools, clean project structure, and ready-to-use authentication.
 
+## ⚠️ Requirements
+
+Activate extension `uuid-ossp` in your postgres :
+
+```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+
 ## ✨ Features
 
 - ✅ Lightweight & clean setup
