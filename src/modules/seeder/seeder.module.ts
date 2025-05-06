@@ -1,20 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from 'src/entities/user/user.entity';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AuthModule } from './modules/auth/auth.module';
-import { MeModule } from './modules/me/me.module';
-import { SeederModule } from './modules/seeder/seeder.module';
-import { UsersModule } from './modules/users/users.module';
-import { TimesModule } from './plugins/times/times.module';
-import { TimesStatisticsModule } from './plugins/times-statistics/times-statistics.module';
+import { SeederService } from './seeder.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -28,21 +23,14 @@ import { TimesStatisticsModule } from './plugins/times-statistics/times-statisti
         password: configService.get<string>('DB_PASSWORD', 'heurs_api'),
         entities: ['dist/entities/**/*.entity.js'],
         synchronize: false,
-        migrations: ['dist/migrations/*.js'],
         logging:
           configService.get<string>('NODE_ENV', 'production') === 'development'
             ? ['query']
             : false,
       }),
     }),
-    UsersModule,
-    AuthModule,
-    TimesModule,
-    TimesStatisticsModule,
-    MeModule,
-    SeederModule,
+    TypeOrmModule.forFeature([User]),
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  providers: [SeederService],
 })
-export class AppModule {}
+export class SeederModule {}

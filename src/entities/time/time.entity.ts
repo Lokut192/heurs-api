@@ -29,7 +29,7 @@ export class Time {
 
   @Column({
     name: 'created_at',
-    type: 'datetime',
+    type: 'timestamptz',
     default: () => 'CURRENT_TIMESTAMP',
     precision: 3,
   })

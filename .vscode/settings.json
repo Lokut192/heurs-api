@@ -35,6 +35,10 @@
   "cSpell.words": [
     "heurs",
     "luxon",
-    "Overtiminator"
+    "Overtiminator",
+    "timestamptz"
   ],
+  "errorLens.excludeBySource": [
+    "cSpell"
+  ]
 }

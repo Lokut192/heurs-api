@@ -38,7 +38,7 @@ export class WeekTimesStatistics {
   year: number;
 
   @Column({
-    type: 'datetime',
+    type: 'timestamptz',
     default: () => 'CURRENT_TIMESTAMP',
     precision: 3,
     name: 'updated_at',
