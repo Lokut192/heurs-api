@@ -56,6 +56,30 @@ export class TimesStatisticsService
     return stat;
   }
 
+  getMonthBalance(
+    userId: number,
+    untilMonthNumber: number,
+    untilYear: number,
+  ): Promise<number> {
+    const startDatetime = DateTime.fromObject({
+      month: untilMonthNumber,
+      year: untilYear,
+    }).startOf('year');
+
+    const endDatetime = DateTime.fromObject({
+      month: untilMonthNumber,
+      year: untilYear,
+    })
+      .startOf('month')
+      .plus({ month: 1 });
+
+    return this.getBalanceForPeriod(
+      userId,
+      startDatetime.toISODate()!,
+      endDatetime.toISODate()!,
+    );
+  }
+
   async genUserMonthStats(userId: number, month: number, year: number) {
     const times = await this.timesService.findManyForMonth(userId, month, year);
 
@@ -71,7 +95,7 @@ export class TimesStatisticsService
     }
 
     // Get stats
-    const stats = await this.generateStatistics(times);
+    const [globalStats] = await Promise.all([this.generateStatistics(times)]);
 
     // Save in database
     const stat = this.monthStatsRepo.create({
@@ -79,7 +103,7 @@ export class TimesStatisticsService
       year,
       user: { id: userId },
       userId,
-      ...stats,
+      ...globalStats,
     });
 
     await this.monthStatsRepo.save(stat);
@@ -103,6 +127,30 @@ export class TimesStatisticsService
     return stat;
   }
 
+  getWeekBalance(
+    userId: number,
+    untilWeek: number,
+    untilYear: number,
+  ): Promise<number> {
+    const startDatetime = DateTime.fromObject({
+      weekNumber: untilWeek,
+      weekYear: untilYear,
+    }).startOf('year');
+
+    const endDatetime = DateTime.fromObject({
+      weekNumber: untilWeek,
+      weekYear: untilYear,
+    })
+      .startOf('week')
+      .plus({ week: 1 });
+
+    return this.getBalanceForPeriod(
+      userId,
+      startDatetime.toISODate()!,
+      endDatetime.toISODate()!,
+    );
+  }
+
   async genUserWeekStats(userId: number, week: number, year: number) {
     const times = await this.timesService.findManyForWeek(userId, week, year);
 
@@ -118,20 +166,102 @@ export class TimesStatisticsService
     }
 
     // Get stats
-    const stats = await this.generateStatistics(times);
+    const [globalStats] = await Promise.all([this.generateStatistics(times)]);
 
     // Save in database
     const stat = this.weekStatsRepo.create({
       week,
       year,
       user: { id: userId },
-      ...stats,
+      ...globalStats,
     });
 
     await this.weekStatsRepo.save(stat);
   }
 
   // #endregion Week stats
+
+  // #region Year stats
+
+  async findStatYear(userId: number, year: number) {
+    // Get global stats
+    const globalStatsQuery = this.monthStatsRepo.createQueryBuilder('stats');
+    globalStatsQuery.select(
+      'SUM(stats.overtime_times_count) as overtime_times_count, SUM(stats.overtime_total_duration) as overtime_total_duration, SUM(stats.recovery_times_count) as recovery_times_count, SUM(stats.recovery_total_duration) as recovery_total_duration, SUM(stats.times_count) as times_count, SUM(stats.total_duration) as total_duration',
+    );
+    globalStatsQuery.where('stats.user_id = :userId', { userId });
+    globalStatsQuery.andWhere('stats.year = :year', { year });
+    const globalStats = (await globalStatsQuery.getRawOne()) as {
+      overtime_times_count: string;
+      overtime_total_duration: string;
+      recovery_times_count: string;
+      recovery_total_duration: string;
+      times_count: string;
+      total_duration: string;
+    };
+
+    // Get week average stats
+    const weekAverageDurationQuery =
+      this.weekStatsRepo.createQueryBuilder('stats');
+    weekAverageDurationQuery.select(
+      'AVG(stats.total_duration) as avg_duration',
+    );
+    weekAverageDurationQuery.where('stats.user_id = :userId', { userId });
+    weekAverageDurationQuery.andWhere('stats.year = :year', { year });
+    const weekAvgDuration = (await weekAverageDurationQuery.getRawOne()) as {
+      avg_duration: string;
+    };
+
+    // Get month average stats
+    const monthAverageDurationQuery =
+      this.monthStatsRepo.createQueryBuilder('stats');
+    monthAverageDurationQuery.select(
+      'AVG(stats.total_duration) as avg_duration',
+    );
+    monthAverageDurationQuery.where('stats.user_id = :userId', { userId });
+    monthAverageDurationQuery.andWhere('stats.year = :year', { year });
+    const monthAvgDuration = (await monthAverageDurationQuery.getRawOne()) as {
+      avg_duration: string;
+    };
+
+    return {
+      overtimeTimesCount: Number(globalStats.overtime_times_count),
+      overtimeTotalDuration: Number(globalStats.overtime_total_duration),
+      recoveryTimesCount: Number(globalStats.recovery_times_count),
+      recoveryTotalDuration: Number(globalStats.recovery_total_duration),
+      timesCount: Number(globalStats.times_count),
+      totalDuration: Number(globalStats.total_duration),
+      user: { id: userId },
+      userId,
+      updatedAt: DateTime.now().toUTC().toISO(),
+      year,
+      weekAvgDuration: Number(weekAvgDuration.avg_duration),
+      monthAvgDuration: Number(monthAvgDuration.avg_duration),
+    } as Omit<DeepPartial<MonthTimesStatistics>, 'month'> & {
+      weekAvgDuration: number;
+      monthAvgDuration: number;
+    };
+  }
+
+  async getYearBalance(userId: number, year: number): Promise<number> {
+    const startDatetime = DateTime.fromObject({
+      year,
+    }).startOf('year');
+
+    const endDatetime = DateTime.fromObject({
+      year,
+    })
+      .startOf('year')
+      .plus({ year: 1 });
+
+    return this.getBalanceForPeriod(
+      userId,
+      startDatetime.toISODate()!,
+      endDatetime.toISODate()!,
+    );
+  }
+
+  // #region stats
 
   // #region Generate
 
@@ -196,6 +326,48 @@ export class TimesStatisticsService
   }
 
   // #endregion Generate
+
+  // #region Balance
+
+  private async getBalanceForPeriod(
+    userId: number,
+    start: string,
+    end: string,
+  ) {
+    // Build overtime query
+    const overtimeQuery = this.timesRepo.createQueryBuilder('time');
+    overtimeQuery.select('SUM(time.duration) as duration');
+    overtimeQuery.where('time.user_id = :userId', { userId });
+    overtimeQuery.andWhere('time.type = :type', { type: TimeType.Overtime });
+    overtimeQuery.andWhere('time.date >= :startDate', {
+      startDate: start,
+    });
+    overtimeQuery.andWhere('time.date < :endDate', {
+      endDate: end,
+    });
+
+    // Build recovery query
+    const recoveryQuery = this.timesRepo.createQueryBuilder('time');
+    recoveryQuery.select('SUM(time.duration) as duration');
+    recoveryQuery.where('time.user_id = :userId', { userId });
+    recoveryQuery.andWhere('time.type = :type', { type: TimeType.Recovery });
+    recoveryQuery.andWhere('time.date >= :startDate', {
+      startDate: start,
+    });
+    recoveryQuery.andWhere('time.date < :endDate', {
+      endDate: end,
+    });
+
+    // Get data
+    const [overtime, recovery] = await Promise.all([
+      overtimeQuery.getRawOne() as Promise<{ duration: number }>,
+      recoveryQuery.getRawOne() as Promise<{ duration: number }>,
+    ]);
+
+    return overtime.duration - recovery.duration;
+  }
+
+  // #endregion Balance
 
   // #region Time subscriptions
 
