@@ -59,10 +59,6 @@ export class TimesStatisticsService
   async genUserMonthStats(userId: number, month: number, year: number) {
     const times = await this.timesService.findManyForMonth(userId, month, year);
 
-    if (times.length === 0) {
-      return;
-    }
-
     // Deleting existing scope stats
     try {
       const existingStats = await this.findForMonth(userId, month, year);
@@ -109,10 +105,6 @@ export class TimesStatisticsService
 
   async genUserWeekStats(userId: number, week: number, year: number) {
     const times = await this.timesService.findManyForWeek(userId, week, year);
-
-    if (times.length === 0) {
-      return;
-    }
 
     // Deleting existing scope stats
     try {
