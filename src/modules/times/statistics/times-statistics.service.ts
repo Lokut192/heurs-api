@@ -4,18 +4,23 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DateTime } from 'luxon';
 import { MonthTimesStatistics } from 'src/entities/time/statistics/month-times-statistics.entity';
 import { WeekTimesStatistics } from 'src/entities/time/statistics/week-times-statistics.entity';
 import { Time } from 'src/entities/time/time.entity';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 
 import { TimesService } from '../times.service';
+import { TimeMutationsSubscriber } from '../times-mutations-subscriber.interface';
 import { TimeType } from '../TimeType.enum';
 
 @Injectable()
-export class TimesStatisticsService {
+export class TimesStatisticsService
+  implements TimeMutationsSubscriber, OnModuleInit
+{
   private readonly logger = new Logger(TimesStatisticsService.name);
 
   constructor(
@@ -25,9 +30,13 @@ export class TimesStatisticsService {
     private readonly monthStatsRepo: Repository<MonthTimesStatistics>,
     @InjectRepository(WeekTimesStatistics)
     private readonly weekStatsRepo: Repository<WeekTimesStatistics>,
-    // @InjectRepository(Time)
-    // private readonly timesRepo: Repository<Time>,
+    @InjectRepository(Time)
+    private readonly timesRepo: Repository<Time>,
   ) {}
+
+  onModuleInit() {
+    this.timesService.subscribeAsyncToMutations(this);
+  }
 
   // #region Month stats
 
@@ -76,8 +85,6 @@ export class TimesStatisticsService {
       userId,
       ...stats,
     });
-
-    console.log('Saving stats...', stat);
 
     await this.monthStatsRepo.save(stat);
   }
@@ -180,15 +187,178 @@ export class TimesStatisticsService {
 
   // #endregion Generate
 
-  // #region Delete stats
+  // #region Time subscriptions
 
-  public async deleteAllWeeksStats(userId: number): Promise<void> {
-    await this.weekStatsRepo.delete({ user: { id: userId } });
+  beforeTimeInsert(
+    _time: DeepPartial<Time>,
+    _userId: number,
+  ): unknown | Promise<unknown> {
+    return;
   }
 
-  public async deleteAllMonthsStats(userId: number): Promise<void> {
-    await this.monthStatsRepo.delete({ user: { id: userId } });
+  beforeTimeUpdate(
+    _prevTime: DeepPartial<Time>,
+    _newTime: DeepPartial<Time>,
+    _userId: number,
+  ): unknown | Promise<unknown> {
+    return;
   }
 
-  // #endregion Delete stats
+  beforeTimeDelete(
+    _time: DeepPartial<Time>,
+    _userId: number,
+  ): unknown | Promise<unknown> {
+    return;
+  }
+
+  beforeTimesDeleteAll(userId: number): unknown | Promise<unknown> {
+    void this.monthStatsRepo.update(
+      { user: { id: userId } },
+      {
+        overtimeTimesCount: 0,
+        overtimeTotalDuration: 0,
+        timesCount: 0,
+        totalDuration: 0,
+      },
+    );
+
+    void this.weekStatsRepo.update(
+      { user: { id: userId } },
+      {
+        overtimeTimesCount: 0,
+        overtimeTotalDuration: 0,
+        timesCount: 0,
+        totalDuration: 0,
+      },
+    );
+
+    return;
+  }
+
+  async afterTimeInsert(
+    time: DeepPartial<Time>,
+    userId: number,
+  ): Promise<unknown> {
+    // Check on time data
+    if (!time.date) {
+      const dbTime = await this.timesRepo
+        .createQueryBuilder('time')
+        .where('time.id = :id', { id: time.id })
+        .andWhere('time.user_id = :userId', { userId })
+        // .leftJoinAndSelect('time.user', 'user')
+        .getOne();
+
+      if (dbTime === null) {
+        this.logger.error(`Could not find time with id ${time.id}.`);
+        return;
+      }
+
+      time.date = dbTime.date;
+      time.user = { id: userId };
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      this.logger.debug('Generating stats after time insertion...');
+    }
+
+    // Extract date
+    const datetime = DateTime.fromISO(time.date);
+
+    void this.genUserMonthStats(userId, datetime.month, datetime.year);
+    void this.genUserWeekStats(userId, datetime.weekNumber, datetime.weekYear);
+
+    return;
+  }
+
+  afterTimeUpdate(
+    prevTime: DeepPartial<Time>,
+    newTime: DeepPartial<Time>,
+    userId: number,
+  ): unknown | Promise<unknown> {
+    if (!prevTime.date || !newTime.date) {
+      this.logger.error(
+        'Date is missing in time update for prevTime or newTime.',
+      );
+      return;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      this.logger.debug('Generating stats after time update for new time...');
+    }
+
+    // Extract dates
+    const prevDateTime = DateTime.fromISO(prevTime.date);
+    const newDateTime = DateTime.fromISO(newTime.date);
+
+    void this.genUserMonthStats(userId, newDateTime.month, newDateTime.year);
+    void this.genUserWeekStats(
+      userId,
+      newDateTime.weekNumber,
+      newDateTime.weekYear,
+    );
+
+    // Update previous month and week if necessary
+    if (
+      prevDateTime.month !== newDateTime.month ||
+      prevDateTime.year !== newDateTime.year
+    ) {
+      if (process.env.NODE_ENV === 'development') {
+        this.logger.debug(
+          'Generating stats after time update for previous time month...',
+        );
+      }
+
+      void this.genUserMonthStats(
+        userId,
+        prevDateTime.month,
+        prevDateTime.year,
+      );
+    }
+    if (
+      prevDateTime.weekNumber !== newDateTime.weekNumber ||
+      prevDateTime.weekYear !== newDateTime.weekYear
+    ) {
+      if (process.env.NODE_ENV === 'development') {
+        this.logger.debug(
+          'Generating stats after time update for previous time week...',
+        );
+      }
+
+      void this.genUserWeekStats(
+        userId,
+        prevDateTime.weekNumber,
+        prevDateTime.weekYear,
+      );
+    }
+
+    return;
+  }
+
+  afterTimeDelete(
+    time: DeepPartial<Time>,
+    userId: number,
+  ): unknown | Promise<unknown> {
+    if (!time.date) {
+      this.logger.error('Date is missing in time delete.');
+      return;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      this.logger.debug('Recalculating stats after time deletion...');
+    }
+
+    // Extract date
+    const datetime = DateTime.fromISO(time.date);
+
+    void this.genUserMonthStats(userId, datetime.month, datetime.year);
+    void this.genUserWeekStats(userId, datetime.weekNumber, datetime.weekYear);
+
+    return;
+  }
+
+  afterTimesDeleteAll(_userId: number): unknown | Promise<unknown> {
+    return;
+  }
+
+  // #endregion Time subscriptions
 }

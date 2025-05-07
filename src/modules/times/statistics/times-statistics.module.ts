@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MonthTimesStatistics } from 'src/entities/time/statistics/month-times-statistics.entity';
 import { WeekTimesStatistics } from 'src/entities/time/statistics/week-times-statistics.entity';
+import { Time } from 'src/entities/time/time.entity';
 
 import { TimesModule } from '../times.module';
 import { TimesStatisticsController } from './times-statistics.controller';
@@ -9,11 +10,7 @@ import { TimesStatisticsService } from './times-statistics.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      MonthTimesStatistics,
-      WeekTimesStatistics,
-      // Time,
-    ]),
+    TypeOrmModule.forFeature([MonthTimesStatistics, WeekTimesStatistics, Time]),
     forwardRef(() => TimesModule),
   ],
   exports: [TimesStatisticsService],
