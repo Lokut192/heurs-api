@@ -11,6 +11,14 @@ export class GetMonthTimesStatsDto {
   overtimeTotalDuration: number;
 
   @Expose()
+  @ApiProperty({ example: 1 })
+  recoveryTimesCount: number;
+
+  @Expose()
+  @ApiProperty({ example: 120, description: 'Duration in minutes' })
+  recoveryTotalDuration: number;
+
+  @Expose()
   @ApiProperty({ example: 2 })
   timesCount: number;
 

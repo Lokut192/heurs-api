@@ -138,6 +138,8 @@ export class TimesStatisticsService
   private async generateStatistics(times: Time[]): Promise<{
     overtimeTimesCount: number;
     overtimeTotalDuration: number;
+    recoveryTimesCount: number;
+    recoveryTotalDuration: number;
     timesCount: number;
     totalDuration: number;
   }> {
@@ -145,9 +147,11 @@ export class TimesStatisticsService
     const totalStats = {
       count: times.length,
       totalDuration: times.reduce((acc, time) => {
-        switch (time.type as TimeType) {
+        switch (time.type) {
           case TimeType.Overtime:
             return acc + time.duration;
+          case TimeType.Recovery:
+            return acc - time.duration;
           default:
             return acc;
         }
@@ -156,11 +160,23 @@ export class TimesStatisticsService
 
     // Get overtime stats
     const overtimeStats = {
-      count: times.filter((t) => (t.type as TimeType) === TimeType.Overtime)
-        .length,
+      count: times.filter((t) => t.type === TimeType.Overtime).length,
       totalDuration: times.reduce((acc, time) => {
-        switch (time.type as TimeType) {
+        switch (time.type) {
           case TimeType.Overtime:
+            return acc + time.duration;
+          default:
+            return acc;
+        }
+      }, 0),
+    };
+
+    // Get recovery stats
+    const recoveryStats = {
+      count: times.filter((t) => t.type === TimeType.Recovery).length,
+      totalDuration: times.reduce((acc, time) => {
+        switch (time.type) {
+          case TimeType.Recovery:
             return acc + time.duration;
           default:
             return acc;
@@ -172,6 +188,8 @@ export class TimesStatisticsService
     return {
       overtimeTimesCount: overtimeStats.count,
       overtimeTotalDuration: overtimeStats.totalDuration,
+      recoveryTimesCount: recoveryStats.count,
+      recoveryTotalDuration: recoveryStats.totalDuration,
       timesCount: totalStats.count,
       totalDuration: totalStats.totalDuration,
     };
