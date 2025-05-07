@@ -208,6 +208,7 @@ export class TimesStatisticsService
     );
     weekAverageDurationQuery.where('stats.user_id = :userId', { userId });
     weekAverageDurationQuery.andWhere('stats.year = :year', { year });
+    weekAverageDurationQuery.andWhere('stats.times_count > 0');
     const weekAvgDuration = (await weekAverageDurationQuery.getRawOne()) as {
       avg_duration: string;
     };
@@ -220,6 +221,7 @@ export class TimesStatisticsService
     );
     monthAverageDurationQuery.where('stats.user_id = :userId', { userId });
     monthAverageDurationQuery.andWhere('stats.year = :year', { year });
+    weekAverageDurationQuery.andWhere('stats.times_count > 0');
     const monthAvgDuration = (await monthAverageDurationQuery.getRawOne()) as {
       avg_duration: string;
     };
