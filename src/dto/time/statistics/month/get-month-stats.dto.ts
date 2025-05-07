@@ -27,6 +27,13 @@ export class GetMonthTimesStatsDto {
   totalDuration: number;
 
   @Expose()
+  @ApiProperty({
+    example: 180,
+    description: 'Balance from start of the year in minutes',
+  })
+  balance: number;
+
+  @Expose()
   @ApiProperty({ example: 1, description: 'Month number' })
   month: number;
 

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 
-export class GetWeekTimesStatsDto {
+export class GetYearTimesStatsDto {
   @Expose()
   @ApiProperty({ example: 1 })
   overtimeTimesCount: number;
@@ -34,8 +34,18 @@ export class GetWeekTimesStatsDto {
   balance: number;
 
   @Expose()
-  @ApiProperty({ example: 1, description: 'Week number' })
-  week: number;
+  @ApiProperty({
+    example: 180,
+    description: 'Average duration in minutes by week',
+  })
+  weekAvgDuration: number;
+
+  @Expose()
+  @ApiProperty({
+    example: 180,
+    description: 'Average duration in minutes by month',
+  })
+  monthAvgDuration: number;
 
   @Expose()
   @ApiProperty({ example: new Date().getFullYear() })

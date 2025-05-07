@@ -19,7 +19,7 @@ import { plainToInstance } from 'class-transformer';
 import { DateTime } from 'luxon';
 import { LoggedUser } from 'src/decorators/auth/LoggedUser.decorator';
 import { GetMonthTimesStatsDto } from 'src/dto/time/statistics/month/get-month-stats.dto';
-import { MonthTimesStatistics } from 'src/entities/time/statistics/month-times-statistics.entity';
+import { GetYearTimesStatsDto } from 'src/dto/time/statistics/year/get-year-stats.dto';
 import { AccessTokenGuard } from 'src/modules/auth/access-token.guard';
 import { LoggedUserType } from 'src/modules/auth/LoggedUser.type';
 import { DeepPartial } from 'typeorm';
@@ -67,28 +67,89 @@ export class TimesStatisticsController {
     }
 
     try {
-      const stat = await this.timesStatsService.findForMonth(
-        loggedUser.userId,
-        month,
-        year,
-      );
+      const [globalStats, balance] = await Promise.all([
+        this.timesStatsService.findForMonth(loggedUser.userId, month, year),
+        this.timesStatsService.getMonthBalance(loggedUser.userId, month, year),
+      ]);
 
-      return plainToInstance(GetMonthTimesStatsDto, stat, {
-        excludeExtraneousValues: true,
-      });
+      return plainToInstance(
+        GetMonthTimesStatsDto,
+        { ...globalStats, balance },
+        {
+          excludeExtraneousValues: true,
+        },
+      );
     } catch (_statsNotFoundException) {
-      const defaultStats: DeepPartial<MonthTimesStatistics> = {
+      const defaultStats: DeepPartial<GetMonthTimesStatsDto> = {
         month,
         year,
-        userId: loggedUser.userId,
         overtimeTimesCount: 0,
         overtimeTotalDuration: 0,
         timesCount: 0,
         totalDuration: 0,
+        balance: 0,
         updatedAt: DateTime.now().toUTC().toISO(),
       };
 
       return plainToInstance(GetMonthTimesStatsDto, defaultStats, {
+        excludeExtraneousValues: true,
+      });
+    }
+  }
+
+  @Get('for/year/:year')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get current logged user stat for provided year',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: GetYearTimesStatsDto,
+    isArray: false,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'No stat found for the provided month-year pair',
+  })
+  async getYearStat(
+    @LoggedUser() loggedUser: LoggedUserType,
+    @Param('year', new ParseIntPipe()) strYear: string,
+  ) {
+    const year = Number(strYear);
+
+    if (Number.isNaN(year) || year <= 0) {
+      throw new BadRequestException('Invalid year number.');
+    }
+
+    try {
+      const [globalStats, balance] = await Promise.all([
+        this.timesStatsService.findStatYear(loggedUser.userId, year),
+        this.timesStatsService.getYearBalance(loggedUser.userId, year),
+      ]);
+
+      return plainToInstance(
+        GetYearTimesStatsDto,
+        { ...globalStats, balance },
+        {
+          excludeExtraneousValues: true,
+        },
+      );
+    } catch (_statsNotFoundException) {
+      const defaultStats: GetYearTimesStatsDto = {
+        year,
+        overtimeTimesCount: 0,
+        overtimeTotalDuration: 0,
+        timesCount: 0,
+        totalDuration: 0,
+        balance: 0,
+        weekAvgDuration: 0,
+        monthAvgDuration: 0,
+        recoveryTimesCount: 0,
+        recoveryTotalDuration: 0,
+        updatedAt: DateTime.now().toUTC().toISO(),
+      };
+
+      return plainToInstance(GetYearTimesStatsDto, defaultStats, {
         excludeExtraneousValues: true,
       });
     }
