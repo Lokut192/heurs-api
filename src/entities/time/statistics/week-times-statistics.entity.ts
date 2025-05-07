@@ -23,6 +23,12 @@ export class WeekTimesStatistics {
   @Column({ name: 'overtime_total_duration' })
   overtimeTotalDuration: number;
 
+  @Column({ name: 'recovery_times_count', default: 0 })
+  recoveryTimesCount: number;
+
+  @Column({ name: 'recovery_total_duration', default: 0 })
+  recoveryTotalDuration: number;
+
   @Column({ name: 'times_count' })
   timesCount: number;
 
