@@ -1,7 +1,5 @@
 import {
   BadRequestException,
-  forwardRef,
-  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -11,47 +9,82 @@ import { DateTime } from 'luxon';
 import { CreateTimeDto } from 'src/dto/time/create-time.dto';
 import { PutTimeDto } from 'src/dto/time/put-time.dto';
 import { Time } from 'src/entities/time/time.entity';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 
-import { TimesStatisticsService } from './statistics/times-statistics.service';
+import { TimeMutationsSubscriber } from './times-mutations-subscriber.interface';
 import { TimeType } from './TimeType.enum';
 
 @Injectable()
 export class TimesService {
   private readonly logger = new Logger(TimesService.name);
 
+  private readonly asyncMutationsSubscribers: TimeMutationsSubscriber[] = [];
+  private readonly syncMutationsSubscribers: TimeMutationsSubscriber[] = [];
+
   constructor(
-    @Inject(forwardRef(() => TimesStatisticsService))
-    private readonly statsService: TimesStatisticsService,
     @InjectRepository(Time)
     private readonly timesRepo: Repository<Time>,
   ) {}
 
-  async createOne(userId: number, createTimeDto: CreateTimeDto) {
-    const dateDateTime = DateTime.fromISO(createTimeDto.date).toUTC();
+  // #region Subscribers
 
-    const time = this.timesRepo.create({
+  subscribeAsyncToMutations(subscriber: TimeMutationsSubscriber) {
+    if (
+      this.asyncMutationsSubscribers.findIndex((s) => s === subscriber) === -1
+    ) {
+      this.asyncMutationsSubscribers.push(subscriber);
+    }
+  }
+
+  subscribeSyncToMutations(subscriber: TimeMutationsSubscriber) {
+    if (
+      this.syncMutationsSubscribers.findIndex((s) => s === subscriber) === -1
+    ) {
+      this.syncMutationsSubscribers.push(subscriber);
+    }
+  }
+
+  // #endregion Subscribers
+
+  async createOne(userId: number, createTimeDto: CreateTimeDto) {
+    const timePayload: DeepPartial<Time> = {
       duration: createTimeDto.duration,
       type: createTimeDto.type,
-      date: dateDateTime.toJSDate(),
+      date: DateTime.fromISO(createTimeDto.date).toISODate()!,
       user: { id: userId },
-    });
+    };
+
+    // Send to subscribers
+    // Async
+    for (const sub of this.asyncMutationsSubscribers) {
+      void sub.beforeTimeInsert(timePayload, userId);
+    }
+    // Sync
+    await Promise.all(
+      this.syncMutationsSubscribers.map((sub) =>
+        sub.beforeTimeInsert(timePayload, userId),
+      ),
+    );
+
+    const time = this.timesRepo.create(timePayload);
 
     const { id: timeId } = await this.timesRepo.save(time);
 
-    void this.statsService.genUserMonthStats(
-      userId,
-      dateDateTime.month,
-      dateDateTime.year,
+    const dbTime = await this.findOne(timeId, userId);
+
+    // Send to subscribers
+    // Async
+    for (const sub of this.asyncMutationsSubscribers) {
+      void sub.afterTimeInsert(dbTime, userId);
+    }
+    // Sync
+    await Promise.all(
+      this.syncMutationsSubscribers.map((sub) =>
+        sub.afterTimeInsert(dbTime, userId),
+      ),
     );
 
-    void this.statsService.genUserWeekStats(
-      userId,
-      dateDateTime.weekNumber,
-      dateDateTime.weekYear,
-    );
-
-    return this.findOne(timeId, userId);
+    return dbTime;
   }
 
   findAllTypes(): string[] {
@@ -158,79 +191,105 @@ export class TimesService {
       throw new BadRequestException('Time does not exist.');
     }
 
-    const prevDateDateTime = DateTime.fromISO(time.date.toString()).toUTC();
-    const newDateDateTime = DateTime.fromISO(
-      updateTimeDto.date.toString(),
-    ).toUTC();
+    // Keep previous time data
+    const prevTime = { ...time };
 
-    time.date = newDateDateTime.toJSDate();
-    time.duration = updateTimeDto.duration;
-    time.type = updateTimeDto.type;
+    // Set new time data
+    const newTime = {
+      ...time,
+      date: DateTime.fromISO(updateTimeDto.date).toISODate()!,
+      duration: updateTimeDto.duration,
+      type: updateTimeDto.type,
+    };
 
-    await this.timesRepo.save(time);
-
-    // Update prev stats
-    void this.statsService.genUserMonthStats(
-      userId,
-      prevDateDateTime.month,
-      prevDateDateTime.year,
-    );
-    void this.statsService.genUserWeekStats(
-      userId,
-      prevDateDateTime.weekNumber,
-      prevDateDateTime.weekYear,
-    );
-
-    // Update new stats only if needed
-    if (
-      prevDateDateTime.month !== newDateDateTime.month ||
-      newDateDateTime.year !== prevDateDateTime.year
-    ) {
-      void this.statsService.genUserMonthStats(
-        userId,
-        newDateDateTime.month,
-        newDateDateTime.year,
-      );
+    // Send to subscribers
+    // Async
+    for (const sub of this.asyncMutationsSubscribers) {
+      void sub.beforeTimeUpdate(prevTime, newTime, userId);
     }
-    if (
-      prevDateDateTime.weekNumber !== newDateDateTime.weekNumber ||
-      newDateDateTime.year !== prevDateDateTime.weekYear
-    ) {
-      void this.statsService.genUserWeekStats(
-        userId,
-        newDateDateTime.weekNumber,
-        newDateDateTime.weekYear,
-      );
+    // Sync
+    await Promise.all(
+      this.syncMutationsSubscribers.map((sub) =>
+        sub.beforeTimeUpdate(prevTime, newTime, userId),
+      ),
+    );
+
+    // time.date = newDateDateTime.toJSDate();
+    // time.duration = updateTimeDto.duration;
+    // time.type = updateTimeDto.type;
+
+    await this.timesRepo.save(newTime);
+
+    // Send to subscribers
+    // Async
+    for (const sub of this.asyncMutationsSubscribers) {
+      void sub.afterTimeUpdate(prevTime, newTime, userId);
     }
+    // Sync
+    await Promise.all(
+      this.syncMutationsSubscribers.map((sub) =>
+        sub.afterTimeUpdate(prevTime, newTime, userId),
+      ),
+    );
 
     return this.findOne(updateTimeDto.id, userId);
   }
 
   async deleteAll(userId: number) {
+    // Send to subscribers
+    // Async
+    for (const sub of this.asyncMutationsSubscribers) {
+      void sub.beforeTimesDeleteAll(userId);
+    }
+    // Sync
+    await Promise.all(
+      this.syncMutationsSubscribers.map((sub) =>
+        sub.beforeTimesDeleteAll(userId),
+      ),
+    );
+
     await this.timesRepo.delete({ user: { id: userId } });
 
-    void this.statsService.deleteAllMonthsStats(userId);
-
-    void this.statsService.deleteAllWeeksStats(userId);
+    // Send to subscribers
+    // Async
+    for (const sub of this.asyncMutationsSubscribers) {
+      void sub.afterTimesDeleteAll(userId);
+    }
+    // Sync
+    await Promise.all(
+      this.syncMutationsSubscribers.map((sub) =>
+        sub.afterTimesDeleteAll(userId),
+      ),
+    );
   }
 
   async deleteOne(id: number, userId: number) {
     const time = await this.findOne(id, userId);
 
-    const dateDateTime = DateTime.fromISO(time.date.toString()).toUTC();
+    // Send to subscribers
+    // Async
+    for (const sub of this.asyncMutationsSubscribers) {
+      void sub.beforeTimeDelete(time, userId);
+    }
+    // Sync
+    await Promise.all(
+      this.syncMutationsSubscribers.map((sub) =>
+        sub.beforeTimeDelete(time, userId),
+      ),
+    );
 
     await this.timesRepo.remove(time);
 
-    void this.statsService.genUserMonthStats(
-      userId,
-      dateDateTime.month,
-      dateDateTime.year,
-    );
-
-    void this.statsService.genUserWeekStats(
-      userId,
-      dateDateTime.weekNumber,
-      dateDateTime.weekYear,
+    // Send to subscribers
+    // Async
+    for (const sub of this.asyncMutationsSubscribers) {
+      void sub.afterTimeDelete(time, userId);
+    }
+    // Sync
+    await Promise.all(
+      this.syncMutationsSubscribers.map((sub) =>
+        sub.afterTimeDelete(time, userId),
+      ),
     );
   }
 }

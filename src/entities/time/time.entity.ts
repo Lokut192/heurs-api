@@ -26,7 +26,7 @@ export class Time {
   type: TimeType;
 
   @Column({ type: 'date' })
-  date: Date;
+  date: string;
 
   @ManyToOne(() => User, (user) => user.times, { nullable: false })
   @JoinColumn({ name: 'user_id' })
