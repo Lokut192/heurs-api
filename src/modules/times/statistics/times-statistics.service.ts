@@ -11,7 +11,7 @@ import { DateTime } from 'luxon';
 import { MonthTimesStatistics } from 'src/entities/time/statistics/month-times-statistics.entity';
 import { WeekTimesStatistics } from 'src/entities/time/statistics/week-times-statistics.entity';
 import { Time } from 'src/entities/time/time.entity';
-import { DeepPartial, Repository } from 'typeorm';
+import { DeepPartial, MoreThan, Repository } from 'typeorm';
 
 import { TimesService } from '../times.service';
 import { TimeMutationsSubscriber } from '../times-mutations-subscriber.interface';
@@ -183,7 +183,49 @@ export class TimesStatisticsService
 
   // #region Year stats
 
-  async findStatYear(userId: number, year: number) {
+  async findStatYear(
+    userId: number,
+    year: number,
+    options: { avgUntil?: string } = {},
+  ) {
+    const currYear = DateTime.now().year;
+
+    let maxAvgMonthNbr = 12;
+    if (options.avgUntil) {
+      maxAvgMonthNbr = DateTime.fromISO(options.avgUntil).month;
+    } else if (year < currYear) {
+      maxAvgMonthNbr = 12;
+    } else {
+      // If year >= currYear
+      maxAvgMonthNbr =
+        (
+          await this.monthStatsRepo.find({
+            select: ['month'],
+            where: { userId, year, timesCount: MoreThan(0) },
+            take: 1,
+            order: { month: 'DESC' },
+          })
+        )[0].month ?? 1;
+    }
+
+    let maxAvgWeekNbr = 52;
+    if (options.avgUntil) {
+      maxAvgWeekNbr = DateTime.fromISO(options.avgUntil).weekNumber;
+    } else if (year < currYear) {
+      maxAvgWeekNbr = 52;
+    } else {
+      // If year >= currYear
+      maxAvgWeekNbr =
+        (
+          await this.weekStatsRepo.find({
+            select: ['week'],
+            where: { userId, year, timesCount: MoreThan(0) },
+            take: 1,
+            order: { week: 'DESC' },
+          })
+        )[0].week ?? 1;
+    }
+
     // Get global stats
     const globalStatsQuery = this.monthStatsRepo.createQueryBuilder('stats');
     globalStatsQuery.select(
@@ -200,31 +242,38 @@ export class TimesStatisticsService
       total_duration: string;
     };
 
-    // Get week average stats
-    const weekAverageDurationQuery =
+    // Get week total stats
+    const weeksTotalDurationQuery =
       this.weekStatsRepo.createQueryBuilder('stats');
-    weekAverageDurationQuery.select(
-      'AVG(stats.total_duration) as avg_duration',
+    weeksTotalDurationQuery.select(
+      'SUM(stats.total_duration) as total_duration',
     );
-    weekAverageDurationQuery.where('stats.user_id = :userId', { userId });
-    weekAverageDurationQuery.andWhere('stats.year = :year', { year });
-    weekAverageDurationQuery.andWhere('stats.times_count > 0');
-    const weekAvgDuration = (await weekAverageDurationQuery.getRawOne()) as {
-      avg_duration: string;
+    weeksTotalDurationQuery.where('stats.user_id = :userId', { userId });
+    weeksTotalDurationQuery.andWhere('stats.week <= :week', {
+      week: maxAvgWeekNbr,
+    });
+    weeksTotalDurationQuery.andWhere('stats.year = :year', { year });
+    weeksTotalDurationQuery.andWhere('stats.times_count > 0');
+    const weeksTotalDuration = (await weeksTotalDurationQuery.getRawOne()) as {
+      total_duration: string;
     };
 
-    // Get month average stats
-    const monthAverageDurationQuery =
+    // Get month total stats
+    const monthsTotalDurationQuery =
       this.monthStatsRepo.createQueryBuilder('stats');
-    monthAverageDurationQuery.select(
-      'AVG(stats.total_duration) as avg_duration',
+    monthsTotalDurationQuery.select(
+      'SUM(stats.total_duration) as total_duration',
     );
-    monthAverageDurationQuery.where('stats.user_id = :userId', { userId });
-    monthAverageDurationQuery.andWhere('stats.year = :year', { year });
-    weekAverageDurationQuery.andWhere('stats.times_count > 0');
-    const monthAvgDuration = (await monthAverageDurationQuery.getRawOne()) as {
-      avg_duration: string;
-    };
+    monthsTotalDurationQuery.where('stats.user_id = :userId', { userId });
+    monthsTotalDurationQuery.andWhere('stats.month <= :month', {
+      month: maxAvgMonthNbr,
+    });
+    monthsTotalDurationQuery.andWhere('stats.year = :year', { year });
+    monthsTotalDurationQuery.andWhere('stats.times_count > 0');
+    const monthsTotalDuration =
+      (await monthsTotalDurationQuery.getRawOne()) as {
+        total_duration: string;
+      };
 
     return {
       overtimeTimesCount: Number(globalStats.overtime_times_count),
@@ -237,8 +286,14 @@ export class TimesStatisticsService
       userId,
       updatedAt: DateTime.now().toUTC().toISO(),
       year,
-      weekAvgDuration: Number(weekAvgDuration.avg_duration),
-      monthAvgDuration: Number(monthAvgDuration.avg_duration),
+      weekAvgDuration:
+        Math.floor(
+          (Number(weeksTotalDuration.total_duration) / maxAvgWeekNbr) * 100,
+        ) / 100,
+      monthAvgDuration:
+        Math.floor(
+          (Number(monthsTotalDuration.total_duration) / maxAvgMonthNbr) * 100,
+        ) / 100,
     } as Omit<DeepPartial<MonthTimesStatistics>, 'month'> & {
       weekAvgDuration: number;
       monthAvgDuration: number;

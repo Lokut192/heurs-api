@@ -7,7 +7,10 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -20,6 +23,7 @@ import { DateTime } from 'luxon';
 import { LoggedUser } from 'src/decorators/auth/LoggedUser.decorator';
 import { GetMonthTimesStatsDto } from 'src/dto/time/statistics/month/get-month-stats.dto';
 import { GetYearTimesStatsDto } from 'src/dto/time/statistics/year/get-year-stats.dto';
+import { GetYearStatsQueryDto } from 'src/dto/time/statistics/year/get-year-stats-query.dto';
 import { AccessTokenGuard } from 'src/modules/auth/access-token.guard';
 import { LoggedUserType } from 'src/modules/auth/LoggedUser.type';
 import { DeepPartial } from 'typeorm';
@@ -111,9 +115,18 @@ export class TimesStatisticsController {
     status: HttpStatus.NOT_FOUND,
     description: 'No stat found for the provided month-year pair',
   })
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      stopAtFirstError: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: false },
+    }),
+  )
   async getYearStat(
     @LoggedUser() loggedUser: LoggedUserType,
     @Param('year', new ParseIntPipe()) strYear: string,
+    @Query() query: GetYearStatsQueryDto,
   ) {
     const year = Number(strYear);
 
@@ -121,10 +134,17 @@ export class TimesStatisticsController {
       throw new BadRequestException('Invalid year number.');
     }
 
+    if (
+      typeof query.avgUntil === 'string' &&
+      DateTime.fromISO(query.avgUntil).year !== year
+    ) {
+      throw new BadRequestException('Until date year must match year.');
+    }
+
     try {
       const [globalStats, balance] = await Promise.all([
-        this.timesStatsService.findStatYear(loggedUser.userId, year),
-        this.timesStatsService.getYearBalance(loggedUser.userId, year),
+        this.timesStatsService.findStatYear(loggedUser.userId, year, query),
+        this.timesStatsService.getYearBalance(loggedUser.userId, year), // TODO: Add query support
       ]);
 
       return plainToInstance(
