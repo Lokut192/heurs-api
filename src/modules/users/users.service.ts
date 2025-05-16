@@ -206,5 +206,9 @@ export class UsersService {
     return bcrypt.compare(password, hash);
   }
 
+  static hashPassword(password: string): string {
+    return bcrypt.hashSync(password, 10);
+  }
+
   // #endregion Utils
 }
