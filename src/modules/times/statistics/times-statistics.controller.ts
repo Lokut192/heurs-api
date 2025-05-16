@@ -89,6 +89,8 @@ export class TimesStatisticsController {
         year,
         overtimeTimesCount: 0,
         overtimeTotalDuration: 0,
+        recoveryTimesCount: 0,
+        recoveryTotalDuration: 0,
         timesCount: 0,
         totalDuration: 0,
         balance: 0,
