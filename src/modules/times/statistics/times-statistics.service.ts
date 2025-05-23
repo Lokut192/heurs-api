@@ -456,6 +456,8 @@ export class TimesStatisticsService
       {
         overtimeTimesCount: 0,
         overtimeTotalDuration: 0,
+        recoveryTimesCount: 0,
+        recoveryTotalDuration: 0,
         timesCount: 0,
         totalDuration: 0,
       },
@@ -466,6 +468,8 @@ export class TimesStatisticsService
       {
         overtimeTimesCount: 0,
         overtimeTotalDuration: 0,
+        recoveryTimesCount: 0,
+        recoveryTotalDuration: 0,
         timesCount: 0,
         totalDuration: 0,
       },

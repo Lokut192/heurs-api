@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsISO8601, IsNumber, IsPositive } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsEnum,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 import { TimeType } from 'src/modules/times/TimeType.enum';
 
 export class CreateTimeDto {
@@ -22,4 +31,11 @@ export class CreateTimeDto {
   })
   @IsISO8601({ strict: true })
   date: string;
+
+  @ApiProperty({ example: 'Some notes.' })
+  @IsString()
+  @IsOptional()
+  @ValidateIf((_obj, value) => value !== null)
+  @Transform(({ value }) => (typeof value === 'string' ? value : null))
+  notes: string | null;
 }

@@ -52,6 +52,7 @@ export class TimesService {
       type: createTimeDto.type,
       date: DateTime.fromISO(createTimeDto.date).toISODate()!,
       user: { id: userId },
+      notes: createTimeDto.notes,
     };
 
     // Send to subscribers
@@ -93,7 +94,11 @@ export class TimesService {
 
   async findAll(
     userId: number,
-    params: {
+    {
+      order = 'DESC',
+      orderby = 'date',
+      ...params
+    }: {
       from?: string | undefined;
       to?: string | undefined;
       orderby: keyof Time;
@@ -111,7 +116,7 @@ export class TimesService {
       timesQuery.andWhere('time.date < :to', { to: params.to });
     }
 
-    timesQuery.orderBy(`time.${params.orderby}`, params.order);
+    timesQuery.orderBy(`time.${orderby}`, order);
 
     const times = await timesQuery.getMany();
 
@@ -200,6 +205,7 @@ export class TimesService {
       date: DateTime.fromISO(updateTimeDto.date).toISODate()!,
       duration: updateTimeDto.duration,
       type: updateTimeDto.type,
+      notes: updateTimeDto.notes,
     };
 
     // Send to subscribers
