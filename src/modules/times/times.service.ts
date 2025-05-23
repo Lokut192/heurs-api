@@ -93,7 +93,11 @@ export class TimesService {
 
   async findAll(
     userId: number,
-    params: {
+    {
+      order = 'DESC',
+      orderby = 'date',
+      ...params
+    }: {
       from?: string | undefined;
       to?: string | undefined;
       orderby: keyof Time;
@@ -111,7 +115,7 @@ export class TimesService {
       timesQuery.andWhere('time.date < :to', { to: params.to });
     }
 
-    timesQuery.orderBy(`time.${params.orderby}`, params.order);
+    timesQuery.orderBy(`time.${orderby}`, order);
 
     const times = await timesQuery.getMany();
 
