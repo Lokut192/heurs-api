@@ -52,6 +52,7 @@ export class TimesService {
       type: createTimeDto.type,
       date: DateTime.fromISO(createTimeDto.date).toISODate()!,
       user: { id: userId },
+      notes: createTimeDto.notes,
     };
 
     // Send to subscribers
@@ -204,6 +205,7 @@ export class TimesService {
       date: DateTime.fromISO(updateTimeDto.date).toISODate()!,
       duration: updateTimeDto.duration,
       type: updateTimeDto.type,
+      notes: updateTimeDto.notes,
     };
 
     // Send to subscribers

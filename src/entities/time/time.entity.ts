@@ -28,6 +28,9 @@ export class Time {
   @Column({ type: 'date' })
   date: string;
 
+  @Column({ type: 'text', nullable: true, default: null })
+  notes: string | null;
+
   @ManyToOne(() => User, (user) => user.times, { nullable: false })
   @JoinColumn({ name: 'user_id' })
   user: User;
