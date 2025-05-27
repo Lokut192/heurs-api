@@ -16,7 +16,7 @@ export class UserSettingsService implements OnModuleInit {
     {
       code: 'TIME_ZONE',
       defaultValue: 'Europe/Paris',
-      type: UserSettingTypes.Text,
+      type: UserSettingTypes.TimeZoneName,
     },
   ];
 
@@ -59,7 +59,26 @@ export class UserSettingsService implements OnModuleInit {
         );
       }
 
-      await this.userSettingsRepo.save(newUsersSettings);
+      await Promise.all([
+        this.userSettingsRepo.update(
+          {
+            code: setting.code,
+          },
+          {
+            type: setting.type,
+          },
+        ),
+        this.userSettingsRepo.save(newUsersSettings),
+      ]);
+      // await this.userSettingsRepo.update(
+      //   {
+      //     code: setting.code,
+      //   },
+      //   {
+      //     type: setting.type,
+      //   },
+      // );
+      // await this.userSettingsRepo.save(newUsersSettings);
     }
   }
 
