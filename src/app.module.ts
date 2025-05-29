@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { MeModule } from './modules/me/me.module';
 import { SeederModule } from './modules/seeder/seeder.module';
+import { TimeZoneModule } from './modules/time-zone/time-zone.module';
 import { TimesModule } from './modules/times/times.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -40,6 +41,7 @@ import { UsersModule } from './modules/users/users.module';
     TimesModule,
     MeModule,
     SeederModule,
+    TimeZoneModule,
   ],
   controllers: [AppController],
   providers: [AppService],

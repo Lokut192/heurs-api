@@ -36,6 +36,7 @@
     "heurs",
     "luxon",
     "Overtiminator",
+    "stringbool",
     "timestamptz"
   ],
   "errorLens.excludeBySource": [
