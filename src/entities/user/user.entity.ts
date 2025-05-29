@@ -12,6 +12,7 @@ import {
 
 import { Time } from '../time/time.entity';
 import { Profile } from './profile/profile.entity';
+import { UserSetting } from './setting/user-setting.entity';
 import { UserSession } from './user-session.entity';
 
 @Entity({ name: 'users' })
@@ -59,6 +60,13 @@ export class User {
   times: Time[];
 
   // #endregion Times
+
+  // #region Settings
+
+  @OneToMany(() => UserSetting, (setting) => setting.user)
+  settings: UserSetting[];
+
+  // #endregion Settings
 
   // #region Methods
 

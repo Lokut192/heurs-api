@@ -20,9 +20,11 @@ import { LoggedUser } from 'src/decorators/auth/LoggedUser.decorator';
 import { GetMeDto } from 'src/dto/user/me/get-me.dto';
 import { PutMePasswordDto } from 'src/dto/user/me/password/put-me-password.dto';
 import { PutMeDto } from 'src/dto/user/me/put-me.dto';
+import { GetUserSettingDto } from 'src/dto/user/user-settings/get-user-settings.dto';
 
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { LoggedUserType } from '../auth/LoggedUser.type';
+import { UserSettingsService } from '../users/user-settings/user-settings.service';
 import { MeService } from './me.service';
 
 @Controller('me')
@@ -30,7 +32,10 @@ import { MeService } from './me.service';
 @ApiTags('Me')
 @UseGuards(AccessTokenGuard)
 export class MeController {
-  constructor(private readonly meService: MeService) {}
+  constructor(
+    private readonly meService: MeService,
+    private readonly userSettingsService: UserSettingsService,
+  ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -112,4 +117,27 @@ export class MeController {
 
     return;
   }
+
+  // #region Settings
+
+  @Get('settings')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get current user settings' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Current user settings',
+    type: GetUserSettingDto,
+    isArray: true,
+  })
+  async getMySettings(@LoggedUser() loggedUser: LoggedUserType) {
+    const settings = await this.userSettingsService.findAllUserSetting(
+      loggedUser.userId,
+    );
+
+    return plainToInstance(GetUserSettingDto, settings, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  // #endregion Settings
 }
