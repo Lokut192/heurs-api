@@ -254,11 +254,18 @@ export class TimesController {
       });
     }
 
+    const from = query.from
+      ? DateTime.fromISO(query.from)
+      : DateTime.now().startOf('month');
+    const to = query.to
+      ? DateTime.fromISO(query.to)
+      : DateTime.now().endOf('month');
+
     const times = await this.timesService.findAll(loggedUser.userId, {
       order: query.order ?? 'ASC',
       orderby: query.orderby ?? 'date',
-      from: query.from ?? DateTime.now().startOf('month').toISODate(),
-      to: query.to ?? DateTime.now().endOf('month').toISODate(),
+      from: from.toISODate()!,
+      to: to.toISODate()!,
     });
 
     switch (parsedAccept.data) {
@@ -266,7 +273,7 @@ export class TimesController {
         response.setHeader('Content-Type', 'text/csv; charset=utf-8');
         response.setHeader(
           'Content-Disposition',
-          'attachment; filename="times.csv"',
+          `attachment; filename="times_${from.toFormat('yyyyMMdd')}_${to.minus({ days: 1 }).toFormat('yyyyMMdd')}.csv"`,
         );
         response.send(
           unparse(
@@ -285,7 +292,7 @@ export class TimesController {
         response.setHeader('Content-Type', 'application/json; charset=utf-8');
         response.setHeader(
           'Content-Disposition',
-          'attachment; filename="times.json"',
+          `attachment; filename="times_${from.toFormat('yyyyMMdd')}_${to.minus({ days: 1 }).toFormat('yyyyMMdd')}.json"`,
         );
         response.send(
           JSON.stringify(
