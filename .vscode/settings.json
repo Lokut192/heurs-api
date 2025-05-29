@@ -37,7 +37,8 @@
     "luxon",
     "Overtiminator",
     "stringbool",
-    "timestamptz"
+    "timestamptz",
+    "unparse"
   ],
   "errorLens.excludeBySource": [
     "cSpell"

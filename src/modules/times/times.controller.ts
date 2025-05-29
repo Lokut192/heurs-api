@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -11,6 +12,8 @@ import {
   Post,
   Put,
   Query,
+  Res,
+  UnsupportedMediaTypeException,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -23,14 +26,20 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import { Response } from 'express';
+import { DateTime } from 'luxon';
+import { unparse } from 'papaparse';
 import { LoggedUser } from 'src/decorators/auth/LoggedUser.decorator';
 import { CreateTimeDto } from 'src/dto/time/create-time.dto';
+import { GetCsvTimeExportDto } from 'src/dto/time/export/get-csv-time-export';
+import { GetJsonTimeExportDto } from 'src/dto/time/export/get-json-time-export';
 import { GetTimeDto } from 'src/dto/time/get-time.dto';
 import { GetTimesQueryDto } from 'src/dto/time/get-times-query.dto';
 import { PutTimeDto } from 'src/dto/time/put-time.dto';
 import { AccessTokenGuard } from 'src/modules/auth/access-token.guard';
 import { LoggedUserType } from 'src/modules/auth/LoggedUser.type';
 
+import { timeExportAcceptSchema } from './time-export.schema';
 import { TimesService } from './times.service';
 
 @UseGuards(AccessTokenGuard)
@@ -206,5 +215,88 @@ export class TimesController {
   })
   findAllTypes() {
     return this.timesService.findAllTypes();
+  }
+
+  @Get('export')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get times export',
+    description:
+      'Use the Accept header to specify the export type (application/json, text/csv, application/pdf).',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description:
+      'Times export in the requested type (application/json, text/csv, application/pdf).',
+    isArray: false,
+    headers: {
+      Accept: {
+        description: 'application/json, text/csv, application/pdf',
+        required: true,
+        schema: {
+          type: 'string',
+          enum: ['application/json', 'text/csv', 'application/pdf'],
+        },
+      },
+    },
+  })
+  async exportTimes(
+    @LoggedUser() loggedUser: LoggedUserType,
+    @Headers('Accept') rawAccept: string,
+    @Res() response: Response,
+    @Query() query: GetTimesQueryDto,
+  ) {
+    const parsedAccept = timeExportAcceptSchema.safeParse(rawAccept);
+
+    if (!!parsedAccept.error) {
+      throw new UnsupportedMediaTypeException({
+        message: 'Unsupported export type.',
+      });
+    }
+
+    const times = await this.timesService.findAll(loggedUser.userId, {
+      order: query.order ?? 'ASC',
+      orderby: query.orderby ?? 'date',
+      from: query.from ?? DateTime.now().startOf('month').toISODate(),
+      to: query.to ?? DateTime.now().endOf('month').toISODate(),
+    });
+
+    switch (parsedAccept.data) {
+      case 'text/csv':
+        response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        response.setHeader(
+          'Content-Disposition',
+          'attachment; filename="times.csv"',
+        );
+        response.send(
+          unparse(
+            plainToInstance(GetCsvTimeExportDto, times, {
+              excludeExtraneousValues: true,
+            }),
+          ),
+        );
+        break;
+      case 'application/pdf':
+        throw new UnsupportedMediaTypeException({
+          message: 'Export type not yet implemented.',
+        });
+      case 'application/json':
+      default:
+        response.setHeader('Content-Type', 'application/json; charset=utf-8');
+        response.setHeader(
+          'Content-Disposition',
+          'attachment; filename="times.json"',
+        );
+        response.send(
+          JSON.stringify(
+            plainToInstance(GetJsonTimeExportDto, times, {
+              excludeExtraneousValues: true,
+            }),
+            null,
+            2,
+          ),
+        );
+        break;
+    }
   }
 }

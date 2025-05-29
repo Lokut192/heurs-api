@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import axios, { isAxiosError } from 'axios';
 import { DateTime } from 'luxon';
@@ -21,41 +22,50 @@ export class TimeZoneService implements OnModuleInit {
   constructor(
     @InjectRepository(TimeZone)
     private readonly timeZonesRepo: Repository<TimeZone>,
+    private readonly configService: ConfigService,
   ) {}
 
   async onModuleInit() {
-    try {
-      this.logger.debug('Fetching time zones...');
+    if (
+      this.configService.get<'development' | 'production' | 'test'>(
+        'NODE_ENV',
+      ) !== 'development'
+    ) {
+      try {
+        this.logger.debug('Fetching time zones...');
 
-      const startedAt = DateTime.now();
+        const startedAt = DateTime.now();
 
-      const response = await this.timeZoneApi.get<string[]>(
-        '/timezone/availabletimezones',
-      );
+        const response = await this.timeZoneApi.get<string[]>(
+          '/timezone/availabletimezones',
+        );
 
-      this.logger.log(
-        `Fetched time zone names in ${DateTime.now().diff(startedAt, 'milliseconds').milliseconds}ms.`,
-      );
+        this.logger.log(
+          `Fetched time zone names in ${DateTime.now().diff(startedAt, 'milliseconds').milliseconds}ms.`,
+        );
 
-      const timeZoneNames = [...new Set(response.data)];
+        const timeZoneNames = [...new Set(response.data)];
 
-      await this.timeZonesRepo.delete({});
+        await this.timeZonesRepo.delete({});
 
-      const dbTimeZones: TimeZone[] = timeZoneNames.map((name) =>
-        this.timeZonesRepo.create({ name }),
-      );
+        const dbTimeZones: TimeZone[] = timeZoneNames.map((name) =>
+          this.timeZonesRepo.create({ name }),
+        );
 
-      await this.timeZonesRepo.save(dbTimeZones);
+        await this.timeZonesRepo.save(dbTimeZones);
 
-      this.logger.log('Time zones saved.');
-    } catch (error) {
-      if (isAxiosError(error)) {
-        this.logger.error(`Could not fetch time zone names: ${error.message}`);
-        return;
+        this.logger.log('Time zones saved.');
+      } catch (error) {
+        if (isAxiosError(error)) {
+          this.logger.error(
+            `Could not fetch time zone names: ${error.message}`,
+          );
+          return;
+        }
+
+        this.logger.error(`Could not fetch time zone names:`);
+        console.error(error);
       }
-
-      this.logger.error(`Could not fetch time zone names:`);
-      console.error(error);
     }
   }
 
