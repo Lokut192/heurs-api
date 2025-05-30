@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Put,
   UseGuards,
   UsePipes,
@@ -21,6 +23,7 @@ import { GetMeDto } from 'src/dto/user/me/get-me.dto';
 import { PutMePasswordDto } from 'src/dto/user/me/password/put-me-password.dto';
 import { PutMeDto } from 'src/dto/user/me/put-me.dto';
 import { GetUserSettingDto } from 'src/dto/user/user-settings/get-user-settings.dto';
+import { PutUserSettingDto } from 'src/dto/user/user-settings/put-user-setting.dto';
 
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { LoggedUserType } from '../auth/LoggedUser.type';
@@ -135,6 +138,79 @@ export class MeController {
     );
 
     return plainToInstance(GetUserSettingDto, settings, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Get('settings/:code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get current user setting by code' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Current user setting by code',
+    type: GetUserSettingDto,
+    isArray: false,
+  })
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      stopAtFirstError: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  )
+  async getMySettingByCode(
+    @LoggedUser() loggedUser: LoggedUserType,
+    @Param('code') code: string,
+  ) {
+    const settings = await this.userSettingsService.findOneByCode(
+      loggedUser.userId,
+      code,
+    );
+
+    return plainToInstance(GetUserSettingDto, settings, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Put('settings/:code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update current user setting by code' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Current user setting by code',
+    type: PutUserSettingDto,
+    isArray: false,
+  })
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      stopAtFirstError: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  )
+  async updateMySettingByCode(
+    @LoggedUser() loggedUser: LoggedUserType,
+    @Param('code') code: string,
+    @Body() updateDto: PutUserSettingDto,
+  ) {
+    const exists = await this.userSettingsService.hasOneByCode(
+      loggedUser.userId,
+      code,
+    );
+
+    if (!exists) {
+      throw new BadRequestException('Invalid code.');
+    }
+
+    const updatedSetting = this.userSettingsService.updateOneByCode(
+      loggedUser.userId,
+      code,
+      updateDto.value,
+    );
+
+    return plainToInstance(GetUserSettingDto, updatedSetting, {
       excludeExtraneousValues: true,
     });
   }
