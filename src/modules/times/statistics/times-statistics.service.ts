@@ -323,7 +323,7 @@ export class TimesStatisticsService
     );
   }
 
-  // #region stats
+  // #endregion Year stats
 
   // #region Generate
 
@@ -464,6 +464,46 @@ export class TimesStatisticsService
       period: {
         start: start.toFormat('yyyy-MM-dd'),
         end: start.endOf('month').toFormat('yyyy-MM-dd'),
+      },
+      stats,
+      times: entries,
+    });
+  }
+
+  async sendWeeklyTimesStatsEmail(
+    userId: number,
+    weekNumber: number,
+    year: number,
+  ) {
+    const user = await this.usersService.findOneById(userId);
+
+    const start = DateTime.fromObject({
+      weekNumber: weekNumber,
+      weekYear: year,
+    })
+      .setLocale('en')
+      .startOf('week');
+    const end = DateTime.fromObject({ weekNumber: weekNumber, weekYear: year })
+      .setLocale('en')
+      .startOf('week')
+      .plus({ months: 1 });
+
+    const entries = await this.timesRepo
+      .createQueryBuilder('time')
+      .where('time.user_id = :userId', { userId })
+      .andWhere('time.date >= :startDate', { startDate: start.toJSDate() })
+      .andWhere('time.date < :endDate', { endDate: end.toJSDate() })
+      .orderBy('time.date', 'ASC')
+      .getMany();
+
+    // Refresh stats for week
+    await this.genUserWeekStats(userId, weekNumber, year);
+    const stats = await this.findStatWeek(userId, weekNumber, year);
+
+    return this.emailService.sendWeeklyTimesStatisticsEmail([user.email], {
+      period: {
+        start: start.toFormat('yyyy-MM-dd'),
+        end: start.endOf('week').toFormat('yyyy-MM-dd'),
       },
       stats,
       times: entries,
