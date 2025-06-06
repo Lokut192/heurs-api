@@ -6,7 +6,9 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Post,
   Put,
+  Query,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -27,6 +29,7 @@ import { PutUserSettingDto } from 'src/dto/user/user-settings/put-user-setting.d
 
 import { AccessTokenGuard } from '../auth/access-token.guard';
 import { LoggedUserType } from '../auth/LoggedUser.type';
+import { TimesStatisticsService } from '../times/statistics/times-statistics.service';
 import { UserSettingsService } from '../users/user-settings/user-settings.service';
 import { MeService } from './me.service';
 
@@ -38,6 +41,7 @@ export class MeController {
   constructor(
     private readonly meService: MeService,
     private readonly userSettingsService: UserSettingsService,
+    private readonly timesStatsService: TimesStatisticsService,
   ) {}
 
   @Get()
@@ -216,4 +220,51 @@ export class MeController {
   }
 
   // #endregion Settings
+
+  // #region Emails
+
+  @Post('emails/monthly-report')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send monthly times stats' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+  })
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      stopAtFirstError: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  )
+  async sendMyMonthlyTimesStatsEmail(
+    @LoggedUser() loggedUser: LoggedUserType,
+    @Query('month') strMonth: string = String(new Date().getMonth()),
+    @Query('year') strYear: string = String(new Date().getFullYear()),
+  ) {
+    // Check on month
+    if (
+      !/^\d{1,2}$/.test(strMonth) ||
+      Number(strMonth) < 1 ||
+      Number(strMonth) > 12
+    ) {
+      throw new BadRequestException('Invalid month number.');
+    }
+    // Check on year
+    if (!/^\d{4}$/.test(strYear) || Number(strYear) < 2000) {
+      throw new BadRequestException('Invalid year.');
+    }
+
+    const [monthNumber, year] = [strMonth, strYear].map(Number);
+
+    const sendMessageInfo =
+      await this.timesStatsService.sendMonthlyTimesStatsEmail(
+        loggedUser.userId,
+        monthNumber,
+        year,
+      );
+    return sendMessageInfo;
+  }
+
+  // #endregion Emails
 }

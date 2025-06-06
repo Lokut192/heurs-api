@@ -11,6 +11,8 @@ import { DateTime } from 'luxon';
 import { MonthTimesStatistics } from 'src/entities/time/statistics/month-times-statistics.entity';
 import { WeekTimesStatistics } from 'src/entities/time/statistics/week-times-statistics.entity';
 import { Time } from 'src/entities/time/time.entity';
+import { EmailService } from 'src/modules/email/email.service';
+import { UsersService } from 'src/modules/users/users.service';
 import { DeepPartial, MoreThan, Repository } from 'typeorm';
 
 import { TimesService } from '../times.service';
@@ -26,6 +28,9 @@ export class TimesStatisticsService
   constructor(
     @Inject(forwardRef(() => TimesService))
     private readonly timesService: TimesService,
+    @Inject(forwardRef(() => UsersService))
+    private readonly usersService: UsersService,
+    private readonly emailService: EmailService,
     @InjectRepository(MonthTimesStatistics)
     private readonly monthStatsRepo: Repository<MonthTimesStatistics>,
     @InjectRepository(WeekTimesStatistics)
@@ -425,6 +430,47 @@ export class TimesStatisticsService
   }
 
   // #endregion Balance
+
+  // #region Emails
+
+  async sendMonthlyTimesStatsEmail(
+    userId: number,
+    monthNumber: number,
+    year: number,
+  ) {
+    const user = await this.usersService.findOneById(userId);
+
+    const start = DateTime.fromObject({ month: monthNumber, year })
+      .setLocale('en')
+      .startOf('month');
+    const end = DateTime.fromObject({ month: monthNumber, year })
+      .setLocale('en')
+      .startOf('month')
+      .plus({ months: 1 });
+
+    const entries = await this.timesRepo
+      .createQueryBuilder('time')
+      .where('time.user_id = :userId', { userId })
+      .andWhere('time.date >= :startDate', { startDate: start.toJSDate() })
+      .andWhere('time.date < :endDate', { endDate: end.toJSDate() })
+      .orderBy('time.date', 'ASC')
+      .getMany();
+
+    // Refresh stats for month
+    await this.genUserMonthStats(userId, monthNumber, year);
+    const stats = await this.findForMonth(userId, monthNumber, year);
+
+    return this.emailService.sendMonthlyTimesStatisticsEmail([user.email], {
+      period: {
+        start: start.toFormat('yyyy-MM-dd'),
+        end: start.endOf('month').toFormat('yyyy-MM-dd'),
+      },
+      stats,
+      times: entries,
+    });
+  }
+
+  // #endregion Emails
 
   // #region Time subscriptions
 

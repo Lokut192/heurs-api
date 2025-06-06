@@ -26,6 +26,11 @@ export class UserSettingsService implements OnModuleInit {
       defaultValue: 'Europe/Paris',
       type: UserSettingTypes.TimeZoneName,
     },
+    {
+      code: 'MONTHLY_TIMES_STATS_EMAIL',
+      defaultValue: '1',
+      type: UserSettingTypes.Boolean,
+    },
   ];
 
   constructor(

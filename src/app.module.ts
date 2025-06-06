@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { CronModule } from './modules/cron/cron.module';
+import { EmailModule } from './modules/email/email.module';
 import { MeModule } from './modules/me/me.module';
 import { SeederModule } from './modules/seeder/seeder.module';
 import { TimeZoneModule } from './modules/time-zone/time-zone.module';
@@ -13,6 +16,7 @@ import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -42,6 +46,8 @@ import { UsersModule } from './modules/users/users.module';
     MeModule,
     SeederModule,
     TimeZoneModule,
+    EmailModule,
+    CronModule,
   ],
   controllers: [AppController],
   providers: [AppService],
