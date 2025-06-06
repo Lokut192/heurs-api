@@ -1,8 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import axios, { isAxiosError } from 'axios';
-import { DateTime } from 'luxon';
+import { isAxiosError } from 'axios';
 import { TimeZone } from 'src/entities/time-zone/time-zone.entity';
 import { Repository } from 'typeorm';
 
@@ -10,62 +8,34 @@ import { Repository } from 'typeorm';
 export class TimeZoneService implements OnModuleInit {
   private readonly logger = new Logger(TimeZoneService.name);
 
-  private readonly timeZoneApi = axios.create({
-    baseURL: 'https://timeapi.io/api',
-
-    timeout: 10 * 1000,
-    timeoutErrorMessage: 'Request Timeout',
-
-    responseType: 'json',
-  });
-
   constructor(
     @InjectRepository(TimeZone)
     private readonly timeZonesRepo: Repository<TimeZone>,
-    private readonly configService: ConfigService,
   ) {}
 
   async onModuleInit() {
-    if (
-      this.configService.get<'development' | 'production' | 'test'>(
-        'NODE_ENV',
-      ) !== 'development'
-    ) {
-      try {
-        this.logger.debug('Fetching time zones...');
+    try {
+      this.logger.debug('Getting available time zones...');
 
-        const startedAt = DateTime.now();
+      const timeZoneNames = [...new Set(this.getAllSupportedTimeZones())];
 
-        const response = await this.timeZoneApi.get<string[]>(
-          '/timezone/availabletimezones',
-        );
+      await this.timeZonesRepo.delete({});
 
-        this.logger.log(
-          `Fetched time zone names in ${DateTime.now().diff(startedAt, 'milliseconds').milliseconds}ms.`,
-        );
+      const dbTimeZones: TimeZone[] = timeZoneNames.map((name) =>
+        this.timeZonesRepo.create({ name }),
+      );
 
-        const timeZoneNames = [...new Set(response.data)];
+      await this.timeZonesRepo.save(dbTimeZones);
 
-        await this.timeZonesRepo.delete({});
-
-        const dbTimeZones: TimeZone[] = timeZoneNames.map((name) =>
-          this.timeZonesRepo.create({ name }),
-        );
-
-        await this.timeZonesRepo.save(dbTimeZones);
-
-        this.logger.log('Time zones saved.');
-      } catch (error) {
-        if (isAxiosError(error)) {
-          this.logger.error(
-            `Could not fetch time zone names: ${error.message}`,
-          );
-          return;
-        }
-
-        this.logger.error(`Could not fetch time zone names:`);
-        console.error(error);
+      this.logger.log('Time zones saved.');
+    } catch (error) {
+      if (isAxiosError(error)) {
+        this.logger.error(`Could not fetch time zone names: ${error.message}`);
+        return;
       }
+
+      this.logger.error(`Could not fetch time zone names:`);
+      console.error(error);
     }
   }
 
@@ -121,5 +91,10 @@ export class TimeZoneService implements OnModuleInit {
       date.toLocaleString('en-US', { timeZone: timeZoneName }),
     );
     return (tzDate.getTime() - utcDate.getTime()) / 6e4;
+  }
+
+  private getAllSupportedTimeZones() {
+    // @ts-ignore
+    return Intl.supportedValuesOf('timeZone') as string[];
   }
 }
