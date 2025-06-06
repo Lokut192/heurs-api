@@ -9,6 +9,6 @@ export default new DataSource({
   port: Number(process.env.DB_PORT) || 5432,
   username: process.env.DB_USER || 'heurs_api',
   password: process.env.DB_PASSWORD || 'heurs_api',
-  entities: ['src/entities/**/*.entity.ts'],
+  entities: ['src/**/*.entity.ts'],
   migrations: ['src/migrations/*.ts'],
 });

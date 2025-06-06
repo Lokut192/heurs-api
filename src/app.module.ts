@@ -30,7 +30,7 @@ import { UsersModule } from './modules/users/users.module';
         port: configService.get<number>('DB_PORT', 5432),
         username: configService.get<string>('DB_USER', 'heurs_api'),
         password: configService.get<string>('DB_PASSWORD', 'heurs_api'),
-        entities: ['dist/entities/**/*.entity.js'],
+        entities: ['dist/**/*.entity.js'],
         synchronize:
           configService.get<string>('NODE_ENV', 'production') !== 'development',
         migrations: ['dist/migrations/*.js'],
