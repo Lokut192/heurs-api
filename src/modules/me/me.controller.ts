@@ -20,6 +20,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import { DateTime } from 'luxon';
 import { LoggedUser } from 'src/decorators/auth/LoggedUser.decorator';
 import { GetMeDto } from 'src/dto/user/me/get-me.dto';
 import { PutMePasswordDto } from 'src/dto/user/me/password/put-me-password.dto';
@@ -224,10 +225,10 @@ export class MeController {
   // #region Emails
 
   @Post('emails/monthly-report')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Send monthly times stats' })
   @ApiResponse({
-    status: HttpStatus.OK,
+    status: HttpStatus.NO_CONTENT,
   })
   @UsePipes(
     new ValidationPipe({
@@ -239,7 +240,7 @@ export class MeController {
   )
   async sendMyMonthlyTimesStatsEmail(
     @LoggedUser() loggedUser: LoggedUserType,
-    @Query('month') strMonth: string = String(new Date().getMonth()),
+    @Query('month') strMonth: string = String(new Date().getMonth() + 1),
     @Query('year') strYear: string = String(new Date().getFullYear()),
   ) {
     // Check on month
@@ -257,13 +258,56 @@ export class MeController {
 
     const [monthNumber, year] = [strMonth, strYear].map(Number);
 
-    const sendMessageInfo =
-      await this.timesStatsService.sendMonthlyTimesStatsEmail(
-        loggedUser.userId,
-        monthNumber,
-        year,
-      );
-    return sendMessageInfo;
+    void this.timesStatsService.sendMonthlyTimesStatsEmail(
+      loggedUser.userId,
+      monthNumber,
+      year,
+    );
+
+    return;
+  }
+
+  @Post('emails/weekly-report')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Send weekly times stats' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+  })
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      stopAtFirstError: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  )
+  async sendMyWeeklyTimesStatsEmail(
+    @LoggedUser() loggedUser: LoggedUserType,
+    @Query('week') strWeek: string = String(DateTime.now().weekNumber),
+    @Query('year') strYear: string = String(new Date().getFullYear()),
+  ) {
+    // Check on week
+    if (
+      !/^\d{1,2}$/.test(strWeek) ||
+      Number(strWeek) < 1 ||
+      Number(strWeek) > 52
+    ) {
+      throw new BadRequestException('Invalid week number.');
+    }
+    // Check on year
+    if (!/^\d{4}$/.test(strYear) || Number(strYear) < 2000) {
+      throw new BadRequestException('Invalid year.');
+    }
+
+    const [weekNumber, year] = [strWeek, strYear].map(Number);
+
+    void this.timesStatsService.sendWeeklyTimesStatsEmail(
+      loggedUser.userId,
+      weekNumber,
+      year,
+    );
+
+    return;
   }
 
   // #endregion Emails

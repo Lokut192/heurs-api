@@ -31,6 +31,11 @@ export class UserSettingsService implements OnModuleInit {
       defaultValue: '1',
       type: UserSettingTypes.Boolean,
     },
+    {
+      code: 'WEEKLY_TIMES_STATS_EMAIL',
+      defaultValue: '1',
+      type: UserSettingTypes.Boolean,
+    },
   ];
 
   constructor(

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Weekly Overtime Report</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        color: #333;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background-color: #004aad;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .content {
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+
+      .stats {
+        margin: 20px 0;
+      }
+
+      .stats h3 {
+        margin-bottom: 10px;
+        color: #004aad;
+      }
+
+      .entry {
+        padding: 10px;
+        background: white;
+        border: 1px solid #ddd;
+        margin-bottom: 10px;
+      }
+
+      .footer {
+        font-size: 12px;
+        color: #777;
+        text-align: center;
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Weekly Report</h1>
+        <p>Period: Week <%= period.week %> (<%= period.year %>)</p>
+      </div>
+
+      <div class="content">
+        <p>Hello,</p>
+
+        <p>Here are your overtime statistics for this week:</p>
+
+        <div class="stats">
+          <h3>Weekly Summary</h3>
+          <ul>
+            <li><strong>Overtime:</strong> <%= stats.overtimeTimesCount %> entries / <%= stats.overtimeTotalDuration %></li>
+            <li><strong>Recovery:</strong> <%= stats.recoveryTimesCount %> entries / <%= stats.recoveryTotalDuration %></li>
+            <li><strong>Total:</strong> <%= stats.timesCount %> entries</li>
+          </ul>
+          <p><strong>Balance:</strong> <%= stats.totalDuration %></p>
+        </div>
+
+        <div class="stats">
+          <h3>Logged Time Entries</h3>
+          <% if (times.length === 0) { %>
+            <p>No time entries were recorded this week.</p>
+          <% } else { %>
+            <% times.forEach(function(time) { %>
+              <div class="entry">
+                <strong><%= time.date %></strong><br />
+                Type: <%= time.type %><br />
+                Duration: <%= time.duration %><br />
+                Note: <%= time.notes || '—' %>
+              </div>
+            <% }); %>
+          <% } %>
+        </div>
+
+        <!-- <p>If you have any questions or notice discrepancies, please contact your manager or HR.</p> -->
+
+        <p>Best regards,<br />The LokutWebCrafter Team</p>
+      </div>
+
+      <div class="footer">
+        &copy; <%= new Date().getFullYear() %> LokutWebCrafter Company — All rights reserved.
+      </div>
+    </div>
+  </body>
+</html>
