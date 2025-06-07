@@ -1,41 +1,55 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { isAxiosError } from 'axios';
 import { TimeZone } from 'src/entities/time-zone/time-zone.entity';
 import { Repository } from 'typeorm';
+import { z } from 'zod/v4';
 
 @Injectable()
 export class TimeZoneService implements OnModuleInit {
   private readonly logger = new Logger(TimeZoneService.name);
 
+  private loadTimezones = false;
+
   constructor(
     @InjectRepository(TimeZone)
     private readonly timeZonesRepo: Repository<TimeZone>,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.loadTimezones = z
+      .stringbool()
+      .catch(false)
+      .parse(this.configService.get<boolean>('LOAD_TIMEZONES', false));
+  }
 
   async onModuleInit() {
-    try {
-      this.logger.debug('Getting available time zones...');
+    if (this.loadTimezones) {
+      try {
+        this.logger.debug('Getting available time zones...');
 
-      const timeZoneNames = [...new Set(this.getAllSupportedTimeZones())];
+        const timeZoneNames = [...new Set(this.getAllSupportedTimeZones())];
 
-      await this.timeZonesRepo.delete({});
+        await this.timeZonesRepo.delete({});
 
-      const dbTimeZones: TimeZone[] = timeZoneNames.map((name) =>
-        this.timeZonesRepo.create({ name }),
-      );
+        const dbTimeZones: TimeZone[] = timeZoneNames.map((name) =>
+          this.timeZonesRepo.create({ name }),
+        );
 
-      await this.timeZonesRepo.save(dbTimeZones);
+        await this.timeZonesRepo.save(dbTimeZones);
 
-      this.logger.log('Time zones saved.');
-    } catch (error) {
-      if (isAxiosError(error)) {
-        this.logger.error(`Could not fetch time zone names: ${error.message}`);
-        return;
+        this.logger.log('Time zones saved.');
+      } catch (error) {
+        if (isAxiosError(error)) {
+          this.logger.error(
+            `Could not fetch time zone names: ${error.message}`,
+          );
+          return;
+        }
+
+        this.logger.error(`Could not fetch time zone names:`);
+        console.error(error);
       }
-
-      this.logger.error(`Could not fetch time zone names:`);
-      console.error(error);
     }
   }
 
