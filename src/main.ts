@@ -30,17 +30,19 @@ async function bootstrap() {
   });
 
   // Swagger
-  const documentConfig = new DocumentBuilder()
-    .setTitle('Overtiminator API')
-    .setDescription('The Overtiminator API endpoints')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const documentFactory = () =>
-    SwaggerModule.createDocument(app, documentConfig);
-  SwaggerModule.setup('swagger', app, documentFactory, {
-    swaggerOptions: { persistAuthorization: true },
-  });
+  if (process.env.NODE_ENV === 'development') {
+    const documentConfig = new DocumentBuilder()
+      .setTitle('Zycron API')
+      .setDescription('The Zycron API endpoints')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const documentFactory = () =>
+      SwaggerModule.createDocument(app, documentConfig);
+    SwaggerModule.setup('swagger', app, documentFactory, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+  }
 
   // Start application
   await app.listen(port);

@@ -38,7 +38,8 @@
     "Overtiminator",
     "stringbool",
     "timestamptz",
-    "unparse"
+    "unparse",
+    "Zycron"
   ],
   "errorLens.excludeBySource": [
     "cSpell"
